@@ -24,7 +24,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Prix du Jour", href: "/prix" },
     { name: "Commander", href: "/commander" },
     { name: "Fournisseurs", href: "/fournisseurs" },
-    { name: "Tableau de bord", href: "/tableau-de-bord" },
   ];
 
   return (
