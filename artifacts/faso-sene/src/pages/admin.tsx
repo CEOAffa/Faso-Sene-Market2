@@ -1,10 +1,16 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Package, ShoppingBag, Truck, DollarSign, Clock, TrendingUp, ChevronDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Users, Package, ShoppingBag, Truck, DollarSign, Clock,
+  TrendingUp, TrendingDown, Minus, ChevronDown, Save, CheckCircle2,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   useGetAdminStats,
   useListOrders,
@@ -12,8 +18,11 @@ import {
   useListSuppliers,
   useUpdateOrder,
   useUpdateDelivery,
+  useGetLatestPrices,
+  useCreatePrice,
   getListOrdersQueryKey,
   getListDeliveriesQueryKey,
+  getGetLatestPricesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -34,16 +43,233 @@ const DELIVERY_STATUSES = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  "en_attente": "bg-yellow-100 text-yellow-800",
-  "confirme": "bg-blue-100 text-blue-800",
-  "en_preparation": "bg-orange-100 text-orange-800",
-  "livre": "bg-green-100 text-green-800",
-  "livree": "bg-green-100 text-green-800",
-  "annule": "bg-red-100 text-red-800",
-  "planifiee": "bg-purple-100 text-purple-800",
-  "en_cours": "bg-blue-100 text-blue-800",
-  "echouee": "bg-red-100 text-red-800",
+  en_attente: "bg-yellow-100 text-yellow-800",
+  confirme: "bg-blue-100 text-blue-800",
+  en_preparation: "bg-orange-100 text-orange-800",
+  livre: "bg-green-100 text-green-800",
+  livree: "bg-green-100 text-green-800",
+  annule: "bg-red-100 text-red-800",
+  planifiee: "bg-purple-100 text-purple-800",
+  en_cours: "bg-blue-100 text-blue-800",
+  echouee: "bg-red-100 text-red-800",
 };
+
+// ─── Price Editor ────────────────────────────────────────────────────────────
+
+interface PriceDraft {
+  productName: string;
+  unit: string;
+  currentPrice: number;
+  newPrice: string;
+}
+
+function PriceEditor() {
+  const { data: latestPrices, isLoading } = useGetLatestPrices();
+  const createPrice = useCreatePrice();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [drafts, setDrafts] = useState<PriceDraft[]>([]);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (latestPrices && drafts.length === 0) {
+      setDrafts(
+        latestPrices.map((p) => ({
+          productName: p.productName,
+          unit: p.unit,
+          currentPrice: p.pricePerUnit,
+          newPrice: String(p.pricePerUnit),
+        }))
+      );
+    }
+  }, [latestPrices, drafts.length]);
+
+  function handleChange(productName: string, value: string) {
+    setSaved(false);
+    setDrafts((prev) =>
+      prev.map((d) => (d.productName === productName ? { ...d, newPrice: value } : d))
+    );
+  }
+
+  function computeTrend(current: number, next: number): { trend: "up" | "down" | "stable"; pct: number } {
+    if (next > current) return { trend: "up", pct: parseFloat((((next - current) / current) * 100).toFixed(1)) };
+    if (next < current) return { trend: "down", pct: parseFloat((((next - current) / current) * 100).toFixed(1)) };
+    return { trend: "stable", pct: 0 };
+  }
+
+  async function handleSave() {
+    const today = new Date().toISOString().split("T")[0];
+    const changed = drafts.filter((d) => {
+      const val = parseFloat(d.newPrice);
+      return !isNaN(val) && val > 0 && val !== d.currentPrice;
+    });
+
+    if (changed.length === 0) {
+      toast({ title: "Aucun changement", description: "Modifiez au moins un prix avant de sauvegarder." });
+      return;
+    }
+
+    let successCount = 0;
+    for (const draft of changed) {
+      const newVal = parseFloat(draft.newPrice);
+      const { trend, pct } = computeTrend(draft.currentPrice, newVal);
+      await new Promise<void>((resolve, reject) =>
+        createPrice.mutate(
+          {
+            data: {
+              productName: draft.productName,
+              pricePerUnit: newVal,
+              unit: draft.unit,
+              date: today,
+              trend,
+              percentChange: pct,
+            },
+          },
+          {
+            onSuccess: () => { successCount++; resolve(); },
+            onError: reject,
+          }
+        )
+      );
+    }
+
+    queryClient.invalidateQueries({ queryKey: getGetLatestPricesQueryKey() });
+    // Refresh drafts with new prices
+    setDrafts((prev) =>
+      prev.map((d) => {
+        const val = parseFloat(d.newPrice);
+        if (!isNaN(val) && val > 0) return { ...d, currentPrice: val, newPrice: String(val) };
+        return d;
+      })
+    );
+    setSaved(true);
+    toast({
+      title: `${successCount} prix mis à jour`,
+      description: "Les nouveaux prix sont visibles sur tout le site.",
+    });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+      </div>
+    );
+  }
+
+  const hasChanges = drafts.some((d) => {
+    const val = parseFloat(d.newPrice);
+    return !isNaN(val) && val > 0 && val !== d.currentPrice;
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-4 pb-3">
+          <p className="text-sm text-muted-foreground">
+            Modifiez les prix ci-dessous et cliquez sur <strong>Publier les prix</strong>. Les tendances (hausse/baisse) sont calculées automatiquement et s'affichent en temps réel sur tout le site.
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {drafts.map((draft) => {
+          const newVal = parseFloat(draft.newPrice);
+          const isValid = !isNaN(newVal) && newVal > 0;
+          const changed = isValid && newVal !== draft.currentPrice;
+          const { trend } = changed ? computeTrend(draft.currentPrice, newVal) : { trend: "stable" as const };
+
+          return (
+            <Card
+              key={draft.productName}
+              className={`transition-all ${changed ? "border-primary shadow-sm ring-1 ring-primary/20" : ""}`}
+            >
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">{draft.productName}</CardTitle>
+                  {changed ? (
+                    trend === "up" ? (
+                      <TrendingUp className="h-4 w-4 text-red-500" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-primary" />
+                    )
+                  ) : (
+                    <Minus className="h-4 w-4 text-muted-foreground/40" />
+                  )}
+                </div>
+                <CardDescription className="text-xs">
+                  Actuel : <span className="font-semibold text-foreground">{draft.currentPrice.toLocaleString("fr-FR")} FCFA</span>
+                  <span className="text-muted-foreground">/{draft.unit}</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="relative">
+                  <Input
+                    data-testid={`input-price-${draft.productName}`}
+                    type="number"
+                    min="1"
+                    step="50"
+                    value={draft.newPrice}
+                    onChange={(e) => handleChange(draft.productName, e.target.value)}
+                    className={`pr-16 text-base font-semibold ${changed ? "border-primary" : ""}`}
+                    placeholder="Nouveau prix"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+                    FCFA
+                  </span>
+                </div>
+                {changed && isValid && (
+                  <p className="text-xs mt-1.5 font-medium flex items-center gap-1">
+                    {trend === "up" ? (
+                      <span className="text-red-600">
+                        +{Math.abs(((newVal - draft.currentPrice) / draft.currentPrice) * 100).toFixed(1)}% vs actuel
+                      </span>
+                    ) : (
+                      <span className="text-primary">
+                        -{Math.abs(((newVal - draft.currentPrice) / draft.currentPrice) * 100).toFixed(1)}% vs actuel
+                      </span>
+                    )}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between pt-2">
+        <p className="text-sm text-muted-foreground">
+          {hasChanges
+            ? `${drafts.filter((d) => { const v = parseFloat(d.newPrice); return !isNaN(v) && v > 0 && v !== d.currentPrice; }).length} produit(s) modifié(s)`
+            : "Aucun changement en attente"}
+        </p>
+        <Button
+          data-testid="button-publish-prices"
+          size="lg"
+          onClick={handleSave}
+          disabled={!hasChanges || createPrice.isPending}
+          className="gap-2 min-w-48"
+        >
+          {createPrice.isPending ? (
+            "Publication..."
+          ) : saved && !hasChanges ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              Prix publiés
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              Publier les prix
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Admin Page ─────────────────────────────────────────────────────────
 
 export default function Admin() {
   const { data: stats, isLoading: statsLoading } = useGetAdminStats();
@@ -60,7 +286,7 @@ export default function Admin() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
         toast({ title: "Statut mis à jour" });
-      }
+      },
     });
   }
 
@@ -69,7 +295,7 @@ export default function Admin() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListDeliveriesQueryKey() });
         toast({ title: "Statut de livraison mis à jour" });
-      }
+      },
     });
   }
 
@@ -80,7 +306,7 @@ export default function Admin() {
     { icon: DollarSign, label: "Revenu total", value: `${(stats?.totalRevenue ?? 0).toLocaleString("fr-FR")} F`, color: "text-primary", bg: "bg-green-50" },
     { icon: Clock, label: "En attente", value: stats?.pendingOrders ?? 0, color: "text-yellow-600", bg: "bg-yellow-50" },
     { icon: Truck, label: "Livraisons actives", value: stats?.activeDeliveries ?? 0, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { icon: TrendingUp, label: "Commandes aujourd'hui", value: stats?.todayOrders ?? 0, color: "text-green-600", bg: "bg-green-50" },
+    { icon: TrendingUp, label: "Aujourd'hui", value: stats?.todayOrders ?? 0, color: "text-green-600", bg: "bg-green-50" },
   ];
 
   return (
@@ -99,32 +325,23 @@ export default function Admin() {
       </section>
 
       <section className="container mx-auto px-4 py-8">
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-10">
-          {statsLoading ? (
-            Array.from({ length: 7 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-xl" />
-            ))
-          ) : (
-            statCards.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Card className="text-center">
-                  <CardContent className="pt-4 pb-4">
-                    <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-2`}>
-                      <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-tight">{stat.label}</p>
-                    <p className="text-lg font-bold mt-0.5">{stat.value}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          )}
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-10">
+          {statsLoading
+            ? Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
+            : statCards.map((stat, i) => (
+                <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <Card className="text-center">
+                    <CardContent className="pt-4 pb-4">
+                      <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-2`}>
+                        <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-tight">{stat.label}</p>
+                      <p className="text-lg font-bold mt-0.5">{stat.value}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
         </div>
 
         {/* Top products */}
@@ -147,19 +364,26 @@ export default function Admin() {
           </Card>
         )}
 
-        <Tabs defaultValue="orders">
-          <TabsList>
+        <Tabs defaultValue="prix">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="prix" data-testid="tab-prix" className="gap-2">
+              <DollarSign className="h-3.5 w-3.5" />
+              Gestion des Prix
+            </TabsTrigger>
             <TabsTrigger value="orders" data-testid="tab-orders">Commandes ({orders?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="deliveries" data-testid="tab-deliveries">Livraisons ({deliveries?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="suppliers" data-testid="tab-suppliers">Fournisseurs ({suppliers?.length ?? 0})</TabsTrigger>
           </TabsList>
 
-          {/* Orders table */}
+          {/* ── Price management tab ── */}
+          <TabsContent value="prix" className="mt-6">
+            <PriceEditor />
+          </TabsContent>
+
+          {/* ── Orders ── */}
           <TabsContent value="orders" className="mt-6">
             {ordersLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-              </div>
+              <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
             ) : !orders || orders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">Aucune commande</div>
             ) : (
@@ -173,19 +397,14 @@ export default function Admin() {
                             <span className="font-semibold">#{order.id}</span>
                             <span className="text-sm text-muted-foreground">{order.customerName}</span>
                             <span className="text-sm text-muted-foreground">{order.customerPhone}</span>
-                            {order.whatsappOrder && (
-                              <Badge className="bg-[#25D366] text-white text-xs">WhatsApp</Badge>
-                            )}
+                            {order.whatsappOrder && <Badge className="bg-[#25D366] text-white text-xs">WhatsApp</Badge>}
                           </div>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{order.deliveryAddress}</p>
                           <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("fr-FR")}</p>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className="font-bold text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</span>
-                          <Select
-                            value={order.status}
-                            onValueChange={(v) => handleOrderStatusChange(order.id, v)}
-                          >
+                          <Select value={order.status} onValueChange={(v) => handleOrderStatusChange(order.id, v)}>
                             <SelectTrigger data-testid={`select-order-status-${order.id}`} className="w-40 h-8 text-xs">
                               <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}>
                                 {ORDER_STATUSES.find((s) => s.value === order.status)?.label ?? order.status}
@@ -193,9 +412,7 @@ export default function Admin() {
                               <ChevronDown className="h-3 w-3 ml-auto" />
                             </SelectTrigger>
                             <SelectContent>
-                              {ORDER_STATUSES.map((s) => (
-                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                              ))}
+                              {ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </div>
@@ -207,12 +424,10 @@ export default function Admin() {
             )}
           </TabsContent>
 
-          {/* Deliveries */}
+          {/* ── Deliveries ── */}
           <TabsContent value="deliveries" className="mt-6">
             {deliveriesLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-              </div>
+              <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
             ) : !deliveries || deliveries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">Aucune livraison</div>
             ) : (
@@ -229,10 +444,7 @@ export default function Admin() {
                           <p className="text-sm text-muted-foreground">{delivery.driverName} — {delivery.driverPhone}</p>
                           <p className="text-xs text-muted-foreground">Prévu le {delivery.scheduledDate}</p>
                         </div>
-                        <Select
-                          value={delivery.status}
-                          onValueChange={(v) => handleDeliveryStatusChange(delivery.id, v)}
-                        >
+                        <Select value={delivery.status} onValueChange={(v) => handleDeliveryStatusChange(delivery.id, v)}>
                           <SelectTrigger data-testid={`select-delivery-status-${delivery.id}`} className="w-36 h-8 text-xs">
                             <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[delivery.status] ?? "bg-gray-100"}`}>
                               {DELIVERY_STATUSES.find((s) => s.value === delivery.status)?.label ?? delivery.status}
@@ -240,9 +452,7 @@ export default function Admin() {
                             <ChevronDown className="h-3 w-3 ml-auto" />
                           </SelectTrigger>
                           <SelectContent>
-                            {DELIVERY_STATUSES.map((s) => (
-                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                            ))}
+                            {DELIVERY_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -253,7 +463,7 @@ export default function Admin() {
             )}
           </TabsContent>
 
-          {/* Suppliers */}
+          {/* ── Suppliers ── */}
           <TabsContent value="suppliers" className="mt-6">
             {!suppliers || suppliers.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">Aucun fournisseur</div>
@@ -268,10 +478,7 @@ export default function Admin() {
                           <p className="text-sm text-muted-foreground">{supplier.type} · {supplier.region}</p>
                           <p className="text-sm text-muted-foreground">{supplier.phone}</p>
                         </div>
-                        <Badge
-                          variant={supplier.status === "active" ? "default" : "secondary"}
-                          className="text-xs"
-                        >
+                        <Badge variant={supplier.status === "active" ? "default" : "secondary"} className="text-xs">
                           {supplier.status === "active" ? "Actif" : "Inactif"}
                         </Badge>
                       </div>
