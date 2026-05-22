@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   Users, Package, ShoppingBag, Truck, DollarSign, Clock,
   TrendingUp, TrendingDown, Minus, ChevronDown, Save, CheckCircle2, LogOut,
+  Settings, Eye, EyeOff, ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -270,6 +271,201 @@ function PriceEditor() {
   );
 }
 
+// ─── Password Settings ────────────────────────────────────────────────────────
+
+function PasswordSettings() {
+  const { token, logout } = useAdminAuth();
+  const { toast } = useToast();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNext, setShowNext] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const strength = next.length === 0 ? null
+    : next.length < 8 ? "faible"
+    : next.length < 12 || !/[^a-zA-Z0-9]/.test(next) ? "moyen"
+    : "fort";
+
+  const strengthColor = { faible: "bg-red-400", moyen: "bg-yellow-400", fort: "bg-primary" }[strength ?? "faible"];
+  const strengthWidth = { faible: "w-1/3", moyen: "w-2/3", fort: "w-full" }[strength ?? "faible"];
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (next !== confirm) {
+      setError("Les nouveaux mots de passe ne correspondent pas.");
+      return;
+    }
+    if (next.length < 8) {
+      setError("Le nouveau mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Erreur lors du changement de mot de passe.");
+        return;
+      }
+
+      setSuccess(true);
+      setCurrent(""); setNext(""); setConfirm("");
+      toast({
+        title: "Mot de passe mis à jour",
+        description: "Votre nouveau mot de passe est actif. Vous serez déconnecté.",
+      });
+      setTimeout(() => logout(), 2500);
+    } catch {
+      setError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="max-w-md">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Changer le mot de passe</CardTitle>
+          </div>
+          <CardDescription>
+            Choisissez un mot de passe fort d'au moins 8 caractères.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {success ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center py-8 gap-3 text-center"
+            >
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="h-7 w-7 text-primary" />
+              </div>
+              <p className="font-semibold">Mot de passe mis à jour !</p>
+              <p className="text-sm text-muted-foreground">Déconnexion en cours...</p>
+            </motion.div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Current password */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Mot de passe actuel</label>
+                <div className="relative">
+                  <Input
+                    type={showCurrent ? "text" : "password"}
+                    value={current}
+                    onChange={(e) => setCurrent(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="pr-10 h-11"
+                    autoComplete="current-password"
+                  />
+                  <button type="button" onClick={() => setShowCurrent(!showCurrent)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New password */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Nouveau mot de passe</label>
+                <div className="relative">
+                  <Input
+                    type={showNext ? "text" : "password"}
+                    value={next}
+                    onChange={(e) => setNext(e.target.value)}
+                    required
+                    placeholder="Minimum 8 caractères"
+                    className="pr-10 h-11"
+                    autoComplete="new-password"
+                  />
+                  <button type="button" onClick={() => setShowNext(!showNext)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showNext ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {strength && (
+                  <div className="space-y-1">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${strengthColor} ${strengthWidth}`} />
+                    </div>
+                    <p className={`text-xs font-medium ${
+                      strength === "faible" ? "text-red-500" : strength === "moyen" ? "text-yellow-600" : "text-primary"
+                    }`}>
+                      Force : {strength}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Confirmer le nouveau mot de passe</label>
+                <Input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className={`h-11 ${confirm && confirm !== next ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  autoComplete="new-password"
+                />
+                {confirm && confirm !== next && (
+                  <p className="text-xs text-destructive">Les mots de passe ne correspondent pas.</p>
+                )}
+              </div>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11"
+                disabled={loading || !current || !next || !confirm || next !== confirm}
+              >
+                {loading ? "Mise à jour..." : "Mettre à jour le mot de passe"}
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 border-muted">
+        <CardContent className="pt-4 pb-4">
+          <p className="text-xs text-muted-foreground">
+            <strong>Note :</strong> Après le changement, vous serez automatiquement déconnecté et devrez vous reconnecter avec votre nouveau mot de passe.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Main Admin Page ─────────────────────────────────────────────────────────
 
 export default function Admin() {
@@ -386,6 +582,10 @@ export default function Admin() {
             <TabsTrigger value="orders" data-testid="tab-orders">Commandes ({orders?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="deliveries" data-testid="tab-deliveries">Livraisons ({deliveries?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="suppliers" data-testid="tab-suppliers">Fournisseurs ({suppliers?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings" className="gap-2 ml-auto">
+              <Settings className="h-3.5 w-3.5" />
+              Paramètres
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Price management tab ── */}
@@ -500,6 +700,11 @@ export default function Admin() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* ── Settings tab ── */}
+          <TabsContent value="settings" className="mt-6">
+            <PasswordSettings />
           </TabsContent>
         </Tabs>
       </section>
