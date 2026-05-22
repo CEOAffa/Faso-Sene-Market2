@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Faso Sènè"
+version = "1.0.0"
+id = "artifacts/faso-sene"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21130
+
+[services.development]
+run = "pnpm --filter @workspace/faso-sene run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/faso-sene", "run", "build" ]
+publicDir = "artifacts/faso-sene/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21130"
+BASE_PATH = "/"
