@@ -48,9 +48,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 {item.name}
               </Link>
             ))}
-            <Link href="/admin">
-              <Button variant="outline" size="sm" className="ml-4">Admin</Button>
-            </Link>
           </nav>
 
           <button
@@ -78,9 +75,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 {item.name}
               </Link>
             ))}
-            <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full justify-start mt-4">Admin</Button>
-            </Link>
           </div>
         )}
       </header>
