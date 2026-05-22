@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Users, Package, ShoppingBag, Truck, DollarSign, Clock,
-  TrendingUp, TrendingDown, Minus, ChevronDown, Save, CheckCircle2,
+  TrendingUp, TrendingDown, Minus, ChevronDown, Save, CheckCircle2, LogOut,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/components/admin-guard";
 
 const ORDER_STATUSES = [
   { value: "en_attente", label: "En attente" },
@@ -280,6 +281,7 @@ export default function Admin() {
   const updateDelivery = useUpdateDelivery();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { logout } = useAdminAuth();
 
   function handleOrderStatusChange(orderId: number, status: string) {
     updateOrder.mutate({ id: orderId, data: { status } }, {
@@ -312,15 +314,26 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <section className="bg-foreground text-background py-12">
-        <div className="container mx-auto px-4">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl md:text-4xl font-bold mb-2"
+        <div className="container mx-auto px-4 flex items-center justify-between">
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl md:text-4xl font-bold mb-2"
+            >
+              Administration
+            </motion.h1>
+            <p className="opacity-70">Tableau de bord de gestion Faso Sènè</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={logout}
+            className="border-white/20 text-background hover:bg-white/10 gap-2"
           >
-            Administration
-          </motion.h1>
-          <p className="opacity-70">Tableau de bord de gestion Faso Sènè</p>
+            <LogOut className="h-4 w-4" />
+            Déconnexion
+          </Button>
         </div>
       </section>
 

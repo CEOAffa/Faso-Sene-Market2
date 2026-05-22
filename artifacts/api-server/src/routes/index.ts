@@ -6,10 +6,12 @@ import suppliersRouter from "./suppliers";
 import ordersRouter from "./orders";
 import deliveriesRouter from "./deliveries";
 import adminRouter from "./admin";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
 router.use(productsRouter);
 router.use(pricesRouter);
 router.use(suppliersRouter);

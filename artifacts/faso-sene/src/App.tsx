@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
+import { AdminGuard } from "@/components/admin-guard";
 
 import Home from "@/pages/home";
 import Catalogue from "@/pages/catalogue";
@@ -25,7 +26,11 @@ function Router() {
         <Route path="/commander" component={Commander} />
         <Route path="/fournisseurs" component={Fournisseurs} />
         <Route path="/tableau-de-bord" component={TableauDeBord} />
-        <Route path="/admin" component={Admin} />
+        <Route path="/admin">
+          <AdminGuard>
+            <Admin />
+          </AdminGuard>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </Layout>
