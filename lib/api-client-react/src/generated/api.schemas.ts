@@ -135,6 +135,8 @@ export interface Order {
   /** @nullable */
   deliveryDate?: string | null;
   /** @nullable */
+  deliveryTime?: string | null;
+  /** @nullable */
   notes?: string | null;
   whatsappOrder?: boolean;
   /** @nullable */
@@ -155,6 +157,7 @@ export interface OrderInput {
   items: OrderItemInput[];
   deliveryAddress: string;
   deliveryDate?: string;
+  deliveryTime?: string;
   notes?: string;
   whatsappOrder?: boolean;
   paymentMethod?: string;

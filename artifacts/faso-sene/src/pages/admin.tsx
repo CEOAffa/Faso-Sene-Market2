@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Package, ShoppingBag, Truck, DollarSign, Clock,
-  TrendingUp, TrendingDown, Minus, ChevronDown, Save, CheckCircle2, LogOut,
+  TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight, Save, CheckCircle2, LogOut,
   Settings, Eye, EyeOff, ShieldCheck, Plus, Pencil, Trash2, X,
-  AlertTriangle, ImageIcon, ToggleLeft, ToggleRight, Banknote, Smartphone, Wallet,
+  AlertTriangle, ImageIcon, ToggleLeft, ToggleRight, Banknote, Smartphone, Wallet, Mail, MapPin, CalendarDays,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -755,6 +755,195 @@ function PasswordSettings() {
   );
 }
 
+// ─── Order Card (expandable) ─────────────────────────────────────────────────
+
+const TIME_SLOT_LABELS: Record<string, string> = {
+  matin: "Matin (8h–12h)",
+  "apres-midi": "Après-midi (12h–17h)",
+  soir: "Soir (17h–20h)",
+  flexible: "Flexible",
+};
+
+function PaymentBadge({ method }: { method?: string | null }) {
+  if (!method || method === "livraison") {
+    return (
+      <Badge variant="outline" className="text-xs gap-1">
+        <Banknote className="h-3 w-3 text-emerald-600" /> Contre remboursement
+      </Badge>
+    );
+  }
+  if (method === "orange_money") {
+    return (
+      <Badge variant="outline" className="text-xs gap-1">
+        <Smartphone className="h-3 w-3 text-orange-500" /> Orange Money
+      </Badge>
+    );
+  }
+  if (method === "wave") {
+    return (
+      <Badge variant="outline" className="text-xs gap-1">
+        <Wallet className="h-3 w-3 text-blue-500" /> Wave
+      </Badge>
+    );
+  }
+  return <Badge variant="outline" className="text-xs">{method}</Badge>;
+}
+
+type OrderItem = { productId?: number; productName?: string; quantity?: number; unit?: string; unitPrice?: number; subtotal?: number };
+type OrderType = {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string | null;
+  whatsappOrder?: boolean | null;
+  paymentMethod?: string | null;
+  deliveryAddress: string;
+  deliveryDate?: string | null;
+  deliveryTime?: string | null;
+  notes?: string | null;
+  items: OrderItem[];
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+};
+
+function OrderCard({ order, onStatusChange }: { order: OrderType; onStatusChange: (id: number, status: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Card data-testid={`row-order-${order.id}`} className="overflow-hidden">
+      <CardContent className="pt-4 pb-4">
+        {/* ─ Header row ─ */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex-1 flex items-start gap-2 text-left group"
+          >
+            <ChevronRight className={`h-4 w-4 mt-0.5 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold">#{order.id}</span>
+                <span className="text-sm">{order.customerName}</span>
+                <span className="text-sm text-muted-foreground">{order.customerPhone}</span>
+                {order.whatsappOrder && <Badge className="bg-[#25D366] text-white text-xs">WhatsApp</Badge>}
+                <PaymentBadge method={order.paymentMethod} />
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{order.deliveryAddress}</p>
+              <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("fr-FR")}</p>
+            </div>
+          </button>
+          <div className="flex items-center gap-3 flex-shrink-0 pl-6 sm:pl-0">
+            <span className="font-bold text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</span>
+            <Select value={order.status} onValueChange={(v) => onStatusChange(order.id, v)}>
+              <SelectTrigger data-testid={`select-order-status-${order.id}`} className="w-40 h-8 text-xs">
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}>
+                  {ORDER_STATUSES.find((s) => s.value === order.status)?.label ?? order.status}
+                </span>
+                <ChevronDown className="h-3 w-3 ml-auto" />
+              </SelectTrigger>
+              <SelectContent>
+                {ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* ─ Expanded detail ─ */}
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 pt-4 border-t space-y-4">
+                {/* Items table */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Produits commandés</p>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Produit</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Qté</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">P.U.</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Sous-total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {order.items.map((item, i) => (
+                          <tr key={i} className="border-t">
+                            <td className="px-3 py-2">{item.productName ?? `Produit #${item.productId}`}</td>
+                            <td className="px-3 py-2 text-right text-muted-foreground">{item.quantity} {item.unit ?? ""}</td>
+                            <td className="px-3 py-2 text-right text-muted-foreground">{(item.unitPrice ?? 0).toLocaleString("fr-FR")} F</td>
+                            <td className="px-3 py-2 text-right font-semibold">{(item.subtotal ?? 0).toLocaleString("fr-FR")} F</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-muted/30 border-t">
+                        <tr>
+                          <td colSpan={3} className="px-3 py-2 font-bold text-right">Total</td>
+                          <td className="px-3 py-2 font-bold text-right text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Details grid */}
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Client</p>
+                    <div className="space-y-1">
+                      <p className="font-medium">{order.customerName}</p>
+                      <p className="text-muted-foreground">{order.customerPhone}</p>
+                      {order.customerEmail && (
+                        <p className="flex items-center gap-1 text-muted-foreground text-xs">
+                          <Mail className="h-3 w-3" /> {order.customerEmail}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Livraison</p>
+                    <div className="space-y-1">
+                      <p className="flex items-start gap-1 text-muted-foreground text-xs">
+                        <MapPin className="h-3 w-3 mt-0.5 shrink-0" /> {order.deliveryAddress}
+                      </p>
+                      {order.deliveryDate && (
+                        <p className="flex items-center gap-1 text-muted-foreground text-xs">
+                          <CalendarDays className="h-3 w-3" />
+                          {order.deliveryDate}
+                          {order.deliveryTime && ` — ${TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}`}
+                        </p>
+                      )}
+                      {!order.deliveryDate && order.deliveryTime && (
+                        <p className="flex items-center gap-1 text-muted-foreground text-xs">
+                          <Clock className="h-3 w-3" /> {TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {order.notes && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
+                    <p className="text-sm bg-muted/40 rounded-lg px-3 py-2">{order.notes}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Admin Page ─────────────────────────────────────────────────────────
 
 export default function Admin() {
@@ -900,49 +1089,11 @@ export default function Admin() {
             ) : (
               <div className="space-y-3">
                 {orders.map((order) => (
-                  <Card key={order.id} data-testid={`row-order-${order.id}`}>
-                    <CardContent className="pt-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">#{order.id}</span>
-                            <span className="text-sm text-muted-foreground">{order.customerName}</span>
-                            <span className="text-sm text-muted-foreground">{order.customerPhone}</span>
-                            {order.whatsappOrder && <Badge className="bg-[#25D366] text-white text-xs">WhatsApp</Badge>}
-                          {order.paymentMethod && order.paymentMethod !== "livraison" && (
-                            <Badge variant="outline" className="text-xs gap-1">
-                              {order.paymentMethod === "orange_money" && <Smartphone className="h-3 w-3 text-orange-500" />}
-                              {order.paymentMethod === "wave" && <Wallet className="h-3 w-3 text-blue-500" />}
-                              {order.paymentMethod === "orange_money" ? "Orange Money" : order.paymentMethod === "wave" ? "Wave" : order.paymentMethod}
-                            </Badge>
-                          )}
-                          {(!order.paymentMethod || order.paymentMethod === "livraison") && (
-                            <Badge variant="outline" className="text-xs gap-1">
-                              <Banknote className="h-3 w-3 text-emerald-600" />
-                              Contre remboursement
-                            </Badge>
-                          )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{order.deliveryAddress}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("fr-FR")}</p>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className="font-bold text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</span>
-                          <Select value={order.status} onValueChange={(v) => handleOrderStatusChange(order.id, v)}>
-                            <SelectTrigger data-testid={`select-order-status-${order.id}`} className="w-40 h-8 text-xs">
-                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}>
-                                {ORDER_STATUSES.find((s) => s.value === order.status)?.label ?? order.status}
-                              </span>
-                              <ChevronDown className="h-3 w-3 ml-auto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onStatusChange={handleOrderStatusChange}
+                  />
                 ))}
               </div>
             )}

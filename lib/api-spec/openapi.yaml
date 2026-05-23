@@ -677,6 +677,8 @@ components:
           type: string
         deliveryDate:
           type: ["string", "null"]
+        deliveryTime:
+          type: ["string", "null"]
         notes:
           type: ["string", "null"]
         whatsappOrder:
@@ -720,6 +722,8 @@ components:
         deliveryAddress:
           type: string
         deliveryDate:
+          type: string
+        deliveryTime:
           type: string
         notes:
           type: string

@@ -19,6 +19,7 @@ export const ordersTable = pgTable("orders", {
   status: text("status").notNull().default("en_attente"),
   deliveryAddress: text("delivery_address").notNull(),
   deliveryDate: text("delivery_date"),
+  deliveryTime: text("delivery_time"),
   notes: text("notes"),
   whatsappOrder: boolean("whatsapp_order").default(false),
   paymentMethod: text("payment_method").default("livraison"),

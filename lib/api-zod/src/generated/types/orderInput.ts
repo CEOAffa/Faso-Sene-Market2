@@ -14,6 +14,7 @@ export interface OrderInput {
   items: OrderItemInput[];
   deliveryAddress: string;
   deliveryDate?: string;
+  deliveryTime?: string;
   notes?: string;
   whatsappOrder?: boolean;
   paymentMethod?: string;

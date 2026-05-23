@@ -20,6 +20,8 @@ export interface Order {
   /** @nullable */
   deliveryDate?: string | null;
   /** @nullable */
+  deliveryTime?: string | null;
+  /** @nullable */
   notes?: string | null;
   whatsappOrder?: boolean;
   /** @nullable */

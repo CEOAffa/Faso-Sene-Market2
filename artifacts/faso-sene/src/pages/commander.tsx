@@ -49,12 +49,20 @@ const PAYMENT_METHODS = [
   },
 ];
 
+const TIME_SLOTS = [
+  { value: "matin", label: "Matin", sub: "8h – 12h" },
+  { value: "apres-midi", label: "Après-midi", sub: "12h – 17h" },
+  { value: "soir", label: "Soir", sub: "17h – 20h" },
+  { value: "flexible", label: "Flexible", sub: "À définir" },
+];
+
 const formSchema = z.object({
   customerName: z.string().min(2, "Nom requis"),
   customerPhone: z.string().min(8, "Numéro de téléphone requis"),
   customerEmail: z.string().email("Email invalide").optional().or(z.literal("")),
   deliveryAddress: z.string().min(5, "Adresse de livraison requise"),
   deliveryDate: z.string().optional(),
+  deliveryTime: z.string().optional(),
   notes: z.string().optional(),
   whatsappOrder: z.boolean().default(false),
 });
@@ -91,6 +99,7 @@ export default function Commander() {
       customerEmail: "",
       deliveryAddress: "",
       deliveryDate: "",
+      deliveryTime: "",
       notes: "",
       whatsappOrder: false,
     },
@@ -141,8 +150,9 @@ export default function Commander() {
     if (values.whatsappOrder) {
       const paymentLabel = PAYMENT_METHODS.find((m) => m.id === paymentMethod)?.label ?? paymentMethod;
       const itemLines = cart.map((i) => `- ${i.productName}: ${i.quantity} ${i.unit} x ${i.unitPrice.toLocaleString("fr-FR")} FCFA = ${i.subtotal.toLocaleString("fr-FR")} FCFA`).join("\n");
+      const timeLabel = TIME_SLOTS.find((t) => t.value === values.deliveryTime)?.label;
       const msg = encodeURIComponent(
-        `Bonjour Faso Sènè,\n\nJe souhaite passer une commande:\n\n${itemLines}\n\nTotal: ${totalAmount.toLocaleString("fr-FR")} FCFA\nPaiement: ${paymentLabel}\n\nLivraison: ${values.deliveryAddress}\nNom: ${values.customerName}\nTél: ${values.customerPhone}${values.notes ? `\nNotes: ${values.notes}` : ""}`
+        `Bonjour Faso Sènè,\n\nJe souhaite passer une commande:\n\n${itemLines}\n\nTotal: ${totalAmount.toLocaleString("fr-FR")} FCFA\nPaiement: ${paymentLabel}\n\nLivraison: ${values.deliveryAddress}${values.deliveryDate ? `\nDate: ${values.deliveryDate}` : ""}${timeLabel ? ` (${timeLabel})` : ""}\nNom: ${values.customerName}\nTél: ${values.customerPhone}${values.notes ? `\nNotes: ${values.notes}` : ""}`
       );
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
     }
@@ -159,6 +169,7 @@ export default function Commander() {
         })),
         deliveryAddress: values.deliveryAddress,
         deliveryDate: values.deliveryDate || undefined,
+        deliveryTime: values.deliveryTime || undefined,
         notes: values.notes || undefined,
         whatsappOrder: values.whatsappOrder,
         paymentMethod,
@@ -393,15 +404,39 @@ export default function Commander() {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="deliveryDate" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date souhaitée (optionnel)</FormLabel>
-                        <FormControl>
-                          <Input data-testid="input-delivery-date" type="date" className="h-11" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="deliveryDate" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date souhaitée (optionnel)</FormLabel>
+                          <FormControl>
+                            <Input data-testid="input-delivery-date" type="date" className="h-11" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="deliveryTime" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Créneau horaire (optionnel)</FormLabel>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {TIME_SLOTS.map((slot) => (
+                              <button
+                                key={slot.value}
+                                type="button"
+                                onClick={() => field.onChange(field.value === slot.value ? "" : slot.value)}
+                                className={`flex flex-col items-center py-2 px-1 rounded-lg border text-center transition-all ${
+                                  field.value === slot.value
+                                    ? "border-primary bg-primary/5 text-primary"
+                                    : "border-border text-muted-foreground hover:border-primary/30"
+                                }`}
+                              >
+                                <span className="text-xs font-semibold">{slot.label}</span>
+                                <span className="text-[10px] opacity-70">{slot.sub}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </FormItem>
+                      )} />
+                    </div>
                     <FormField control={form.control} name="notes" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Notes (optionnel)</FormLabel>
