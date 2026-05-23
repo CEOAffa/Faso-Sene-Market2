@@ -5,6 +5,7 @@ import {
   TrendingUp, TrendingDown, Minus, ChevronDown, ChevronRight, Save, CheckCircle2, LogOut,
   Settings, Eye, EyeOff, ShieldCheck, Plus, Pencil, Trash2, X,
   AlertTriangle, ImageIcon, ToggleLeft, ToggleRight, Banknote, Smartphone, Wallet, Mail, MapPin, CalendarDays,
+  ClipboardCheck, XCircle, PackageCheck, Navigation,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ const ORDER_STATUSES = [
   { value: "en_attente", label: "En attente" },
   { value: "confirme", label: "Confirmé" },
   { value: "en_preparation", label: "En préparation" },
+  { value: "en_livraison", label: "En livraison" },
   { value: "livre", label: "Livré" },
   { value: "annule", label: "Annulé" },
 ];
@@ -55,6 +57,7 @@ const STATUS_COLORS: Record<string, string> = {
   en_attente: "bg-yellow-100 text-yellow-800",
   confirme: "bg-blue-100 text-blue-800",
   en_preparation: "bg-orange-100 text-orange-800",
+  en_livraison: "bg-indigo-100 text-indigo-800",
   livre: "bg-green-100 text-green-800",
   livree: "bg-green-100 text-green-800",
   annule: "bg-red-100 text-red-800",
@@ -807,49 +810,110 @@ type OrderType = {
   createdAt: string;
 };
 
+const STATUS_ACTIONS: {
+  value: string;
+  label: string;
+  shortLabel: string;
+  icon: React.ElementType;
+  activeClass: string;
+  inactiveClass: string;
+}[] = [
+  {
+    value: "confirme",
+    label: "Confirmer",
+    shortLabel: "Confirmer",
+    icon: ClipboardCheck,
+    activeClass: "bg-blue-600 text-white border-blue-600 shadow-sm",
+    inactiveClass: "border-blue-200 text-blue-700 hover:bg-blue-50",
+  },
+  {
+    value: "en_preparation",
+    label: "En préparation",
+    shortLabel: "Préparer",
+    icon: Package,
+    activeClass: "bg-orange-500 text-white border-orange-500 shadow-sm",
+    inactiveClass: "border-orange-200 text-orange-700 hover:bg-orange-50",
+  },
+  {
+    value: "en_livraison",
+    label: "En livraison",
+    shortLabel: "Livrer",
+    icon: Navigation,
+    activeClass: "bg-indigo-600 text-white border-indigo-600 shadow-sm",
+    inactiveClass: "border-indigo-200 text-indigo-700 hover:bg-indigo-50",
+  },
+  {
+    value: "livre",
+    label: "Livré",
+    shortLabel: "Livré ✓",
+    icon: PackageCheck,
+    activeClass: "bg-green-600 text-white border-green-600 shadow-sm",
+    inactiveClass: "border-green-200 text-green-700 hover:bg-green-50",
+  },
+];
+
 function OrderCard({ order, onStatusChange }: { order: OrderType; onStatusChange: (id: number, status: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const isCancelled = order.status === "annule";
+  const isDelivered = order.status === "livre";
+
+  const itemSummary = order.items
+    .map((i) => `${i.productName ?? `#${i.productId}`} ×${i.quantity}${i.unit ? ` ${i.unit}` : ""}`)
+    .join(" · ");
 
   return (
-    <Card data-testid={`row-order-${order.id}`} className="overflow-hidden">
+    <Card data-testid={`row-order-${order.id}`} className={`overflow-hidden transition-all ${isCancelled ? "opacity-60" : ""}`}>
+      {/* ── Collapsed header ── */}
       <CardContent className="pt-4 pb-4">
-        {/* ─ Header row ─ */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex-1 flex items-start gap-2 text-left group"
+            className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={expanded ? "Réduire" : "Développer"}
           >
-            <ChevronRight className={`h-4 w-4 mt-0.5 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold">#{order.id}</span>
-                <span className="text-sm">{order.customerName}</span>
-                <span className="text-sm text-muted-foreground">{order.customerPhone}</span>
-                {order.whatsappOrder && <Badge className="bg-[#25D366] text-white text-xs">WhatsApp</Badge>}
-                <PaymentBadge method={order.paymentMethod} />
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">{order.deliveryAddress}</p>
-              <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("fr-FR")}</p>
-            </div>
+            <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
           </button>
-          <div className="flex items-center gap-3 flex-shrink-0 pl-6 sm:pl-0">
-            <span className="font-bold text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</span>
-            <Select value={order.status} onValueChange={(v) => onStatusChange(order.id, v)}>
-              <SelectTrigger data-testid={`select-order-status-${order.id}`} className="w-40 h-8 text-xs">
-                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[order.status] ?? "bg-gray-100"}`}>
-                  {ORDER_STATUSES.find((s) => s.value === order.status)?.label ?? order.status}
+
+          <div className="flex-1 min-w-0">
+            {/* Top row: id, name, phone, status */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-bold text-sm text-muted-foreground">#{order.id}</span>
+              <span className="font-semibold">{order.customerName}</span>
+              <span className="text-sm text-muted-foreground">{order.customerPhone}</span>
+              {order.whatsappOrder && (
+                <Badge className="bg-[#25D366] text-white text-xs px-1.5 py-0">WhatsApp</Badge>
+              )}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[order.status] ?? "bg-gray-100 text-gray-700"}`}>
+                {ORDER_STATUSES.find((s) => s.value === order.status)?.label ?? order.status}
+              </span>
+            </div>
+
+            {/* Quick product summary */}
+            <p className="text-xs text-muted-foreground mt-1 truncate">{itemSummary || "—"}</p>
+
+            {/* Address + date */}
+            <div className="flex flex-wrap gap-x-3 mt-0.5">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3 shrink-0" />{order.deliveryAddress}
+              </span>
+              {order.deliveryDate && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3 shrink-0" />{order.deliveryDate}
+                  {order.deliveryTime && ` · ${TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}`}
                 </span>
-                <ChevronDown className="h-3 w-3 ml-auto" />
-              </SelectTrigger>
-              <SelectContent>
-                {ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+              )}
+            </div>
+          </div>
+
+          {/* Total + received date */}
+          <div className="text-right shrink-0">
+            <p className="font-bold text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{new Date(order.createdAt).toLocaleDateString("fr-FR")}</p>
           </div>
         </div>
 
-        {/* ─ Expanded detail ─ */}
+        {/* ── Expanded detail ── */}
         <AnimatePresence initial={false}>
           {expanded && (
             <motion.div
@@ -859,82 +923,158 @@ function OrderCard({ order, onStatusChange }: { order: OrderType; onStatusChange
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="mt-4 pt-4 border-t space-y-4">
-                {/* Items table */}
+              <div className="mt-4 pt-4 border-t space-y-5">
+
+                {/* ── Products table ── */}
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Produits commandés</p>
-                  <div className="rounded-lg border overflow-hidden">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <ShoppingBag className="h-3.5 w-3.5" /> Produits commandés
+                  </p>
+                  <div className="rounded-xl border overflow-hidden">
                     <table className="w-full text-sm">
-                      <thead className="bg-muted/50">
-                        <tr>
-                          <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Produit</th>
-                          <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Qté</th>
-                          <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">P.U.</th>
-                          <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Sous-total</th>
+                      <thead>
+                        <tr className="bg-muted/60">
+                          <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Produit</th>
+                          <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">Quantité</th>
+                          <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs hidden sm:table-cell">Prix unitaire</th>
+                          <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">Sous-total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {order.items.map((item, i) => (
-                          <tr key={i} className="border-t">
-                            <td className="px-3 py-2">{item.productName ?? `Produit #${item.productId}`}</td>
-                            <td className="px-3 py-2 text-right text-muted-foreground">{item.quantity} {item.unit ?? ""}</td>
-                            <td className="px-3 py-2 text-right text-muted-foreground">{(item.unitPrice ?? 0).toLocaleString("fr-FR")} F</td>
-                            <td className="px-3 py-2 text-right font-semibold">{(item.subtotal ?? 0).toLocaleString("fr-FR")} F</td>
+                          <tr key={i} className="border-t hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-3 font-medium">
+                              {item.productName ?? `Produit #${item.productId}`}
+                            </td>
+                            <td className="px-4 py-3 text-right text-muted-foreground">
+                              {item.quantity}{item.unit ? ` ${item.unit}` : ""}
+                            </td>
+                            <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">
+                              {(item.unitPrice ?? 0).toLocaleString("fr-FR")} FCFA
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-primary">
+                              {(item.subtotal ?? (item.quantity ?? 0) * (item.unitPrice ?? 0)).toLocaleString("fr-FR")} F
+                            </td>
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot className="bg-muted/30 border-t">
-                        <tr>
-                          <td colSpan={3} className="px-3 py-2 font-bold text-right">Total</td>
-                          <td className="px-3 py-2 font-bold text-right text-primary">{order.totalAmount.toLocaleString("fr-FR")} F</td>
+                      <tfoot>
+                        <tr className="border-t bg-muted/30">
+                          <td colSpan={2} className="px-4 py-3 font-bold sm:hidden">Total</td>
+                          <td colSpan={3} className="px-4 py-3 font-bold text-right hidden sm:table-cell">Total</td>
+                          <td className="px-4 py-3 font-bold text-right text-primary text-base">
+                            {order.totalAmount.toLocaleString("fr-FR")} FCFA
+                          </td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
                 </div>
 
-                {/* Details grid */}
-                <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
+                {/* ── Info grid ── */}
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {/* Customer */}
+                  <div className="space-y-1.5">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Client</p>
                     <div className="space-y-1">
-                      <p className="font-medium">{order.customerName}</p>
-                      <p className="text-muted-foreground">{order.customerPhone}</p>
+                      <p className="font-semibold text-sm">{order.customerName}</p>
+                      <p className="text-sm text-muted-foreground">{order.customerPhone}</p>
                       {order.customerEmail && (
-                        <p className="flex items-center gap-1 text-muted-foreground text-xs">
-                          <Mail className="h-3 w-3" /> {order.customerEmail}
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Mail className="h-3 w-3 shrink-0" />{order.customerEmail}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="space-y-2">
+
+                  {/* Delivery */}
+                  <div className="space-y-1.5">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Livraison</p>
                     <div className="space-y-1">
-                      <p className="flex items-start gap-1 text-muted-foreground text-xs">
-                        <MapPin className="h-3 w-3 mt-0.5 shrink-0" /> {order.deliveryAddress}
+                      <p className="flex items-start gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />{order.deliveryAddress}
                       </p>
                       {order.deliveryDate && (
-                        <p className="flex items-center gap-1 text-muted-foreground text-xs">
-                          <CalendarDays className="h-3 w-3" />
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <CalendarDays className="h-3 w-3 shrink-0" />
                           {order.deliveryDate}
-                          {order.deliveryTime && ` — ${TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}`}
+                          {order.deliveryTime && (
+                            <span className="ml-0.5">· {TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}</span>
+                          )}
                         </p>
                       )}
                       {!order.deliveryDate && order.deliveryTime && (
-                        <p className="flex items-center gap-1 text-muted-foreground text-xs">
-                          <Clock className="h-3 w-3" /> {TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 shrink-0" />{TIME_SLOT_LABELS[order.deliveryTime] ?? order.deliveryTime}
                         </p>
                       )}
                     </div>
                   </div>
+
+                  {/* Payment + notes */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Paiement</p>
+                    <PaymentBadge method={order.paymentMethod} />
+                    {order.notes && (
+                      <div className="mt-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
+                        <p className="text-xs bg-muted/50 rounded-lg px-3 py-2 text-muted-foreground">{order.notes}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {order.notes && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
-                    <p className="text-sm bg-muted/40 rounded-lg px-3 py-2">{order.notes}</p>
+                {/* ── Status action buttons ── */}
+                <div className="pt-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">
+                    Gestion de la commande
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {STATUS_ACTIONS.map((action) => {
+                      const Icon = action.icon;
+                      const isActive = order.status === action.value;
+                      const disabled = isCancelled && action.value !== "annule";
+                      return (
+                        <button
+                          key={action.value}
+                          data-testid={`btn-status-${action.value}-${order.id}`}
+                          type="button"
+                          disabled={disabled || isActive}
+                          onClick={() => onStatusChange(order.id, action.value)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                            isActive
+                              ? action.activeClass
+                              : disabled
+                              ? "opacity-40 cursor-not-allowed border-border text-muted-foreground"
+                              : action.inactiveClass
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {action.shortLabel}
+                          {isActive && <CheckCircle2 className="h-3 w-3 ml-0.5" />}
+                        </button>
+                      );
+                    })}
+                    {/* Cancel button — always last */}
+                    {!isDelivered && (
+                      <button
+                        data-testid={`btn-status-annule-${order.id}`}
+                        type="button"
+                        disabled={isCancelled}
+                        onClick={() => onStatusChange(order.id, "annule")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ml-auto ${
+                          isCancelled
+                            ? "bg-red-600 text-white border-red-600 opacity-80 cursor-not-allowed"
+                            : "border-red-200 text-red-700 hover:bg-red-50"
+                        }`}
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        {isCancelled ? "Annulé" : "Annuler"}
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
+
               </div>
             </motion.div>
           )}

@@ -164,8 +164,11 @@ export default function Commander() {
         customerEmail: values.customerEmail || undefined,
         items: cart.map((i) => ({
           productId: i.productId,
+          productName: i.productName,
           quantity: i.quantity,
+          unit: i.unit,
           unitPrice: i.unitPrice,
+          subtotal: i.subtotal,
         })),
         deliveryAddress: values.deliveryAddress,
         deliveryDate: values.deliveryDate || undefined,
