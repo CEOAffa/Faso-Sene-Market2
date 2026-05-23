@@ -21,6 +21,7 @@ export const ordersTable = pgTable("orders", {
   deliveryDate: text("delivery_date"),
   notes: text("notes"),
   whatsappOrder: boolean("whatsapp_order").default(false),
+  paymentMethod: text("payment_method").default("livraison"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -681,6 +681,8 @@ components:
           type: ["string", "null"]
         whatsappOrder:
           type: boolean
+        paymentMethod:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -723,6 +725,8 @@ components:
           type: string
         whatsappOrder:
           type: boolean
+        paymentMethod:
+          type: string
 
     OrderItemInput:
       type: object

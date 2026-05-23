@@ -71,6 +71,7 @@ router.post("/orders", async (req, res): Promise<void> => {
     deliveryDate: parsed.data.deliveryDate ?? null,
     notes: parsed.data.notes ?? null,
     whatsappOrder: parsed.data.whatsappOrder ?? false,
+    paymentMethod: (parsed.data as Record<string, unknown>).paymentMethod as string ?? "livraison",
   }).returning();
 
   res.status(201).json(serializeOrder(order));

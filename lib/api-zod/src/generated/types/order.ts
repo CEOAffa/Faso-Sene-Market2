@@ -22,5 +22,7 @@ export interface Order {
   /** @nullable */
   notes?: string | null;
   whatsappOrder?: boolean;
+  /** @nullable */
+  paymentMethod?: string | null;
   createdAt: string;
 }

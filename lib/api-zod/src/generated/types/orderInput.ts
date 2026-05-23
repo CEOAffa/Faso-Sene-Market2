@@ -16,4 +16,5 @@ export interface OrderInput {
   deliveryDate?: string;
   notes?: string;
   whatsappOrder?: boolean;
+  paymentMethod?: string;
 }

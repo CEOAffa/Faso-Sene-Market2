@@ -101,7 +101,7 @@ export default function Home() {
                         {price.pricePerUnit.toLocaleString("fr-FR")} F
                       </span>
                       <span className="text-xs text-background/40">/{price.unit}</span>
-                      {price.trend !== "stable" && TREND_ICON[price.trend]}
+                      {price.trend && price.trend !== "stable" && TREND_ICON[price.trend]}
                     </div>
                   ))}
             </div>

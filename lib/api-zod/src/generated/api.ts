@@ -311,6 +311,7 @@ export const GetSupplierOrdersResponseItem = zod.object({
   "deliveryDate": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "whatsappOrder": zod.boolean().optional(),
+  "paymentMethod": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const GetSupplierOrdersResponse = zod.array(GetSupplierOrdersResponseItem)
@@ -343,6 +344,7 @@ export const ListOrdersResponseItem = zod.object({
   "deliveryDate": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "whatsappOrder": zod.boolean().optional(),
+  "paymentMethod": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListOrdersResponse = zod.array(ListOrdersResponseItem)
@@ -363,7 +365,8 @@ export const CreateOrderBody = zod.object({
   "deliveryAddress": zod.string(),
   "deliveryDate": zod.string().optional(),
   "notes": zod.string().optional(),
-  "whatsappOrder": zod.boolean().optional()
+  "whatsappOrder": zod.boolean().optional(),
+  "paymentMethod": zod.string().optional()
 })
 
 
@@ -393,6 +396,7 @@ export const GetOrderResponse = zod.object({
   "deliveryDate": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "whatsappOrder": zod.boolean().optional(),
+  "paymentMethod": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -429,6 +433,7 @@ export const UpdateOrderResponse = zod.object({
   "deliveryDate": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "whatsappOrder": zod.boolean().optional(),
+  "paymentMethod": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

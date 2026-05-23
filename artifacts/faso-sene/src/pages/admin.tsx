@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Package, ShoppingBag, Truck, DollarSign, Clock,
   TrendingUp, TrendingDown, Minus, ChevronDown, Save, CheckCircle2, LogOut,
-  Settings, Eye, EyeOff, ShieldCheck,
+  Settings, Eye, EyeOff, ShieldCheck, Plus, Pencil, Trash2, X,
+  AlertTriangle, ImageIcon, ToggleLeft, ToggleRight, Banknote, Smartphone, Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,18 +13,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   useGetAdminStats,
   useListOrders,
   useListDeliveries,
   useListSuppliers,
+  useListProducts,
   useUpdateOrder,
   useUpdateDelivery,
+  useUpdateProduct,
+  useDeleteProduct,
+  useCreateProduct,
   useGetLatestPrices,
   useCreatePrice,
   getListOrdersQueryKey,
   getListDeliveriesQueryKey,
   getGetLatestPricesQueryKey,
+  getListProductsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -267,6 +274,288 @@ function PriceEditor() {
           )}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// ─── Product Manager ──────────────────────────────────────────────────────────
+
+const PRODUCT_CATEGORIES = ["Légumes", "Fruits", "Céréales", "Protéines", "Tubercules"];
+const PRODUCT_UNITS = ["kg", "g", "unité", "sac", "litre", "boîte", "douzaine", "botte"];
+
+interface EditForm { name: string; category: string; unit: string; imageUrl: string; isAvailable: boolean; }
+interface AddForm extends EditForm { nameLocal: string; supplierId: string; }
+
+function ProductManager() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: products, isLoading } = useListProducts();
+  const { data: suppliers } = useListSuppliers();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+  const createProduct = useCreateProduct();
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editForm, setEditForm] = useState<EditForm>({ name: "", category: "Légumes", unit: "kg", imageUrl: "", isAvailable: true });
+  const [addForm, setAddForm] = useState<AddForm>({ name: "", nameLocal: "", category: "Légumes", unit: "kg", imageUrl: "", supplierId: "", isAvailable: true });
+
+  function startEdit(p: NonNullable<typeof products>[number]) {
+    setEditingId(p.id);
+    setDeleteId(null);
+    setEditForm({ name: p.name, category: p.category, unit: p.unit, imageUrl: p.imageUrl ?? "", isAvailable: p.isAvailable });
+  }
+
+  function saveEdit() {
+    if (!editingId) return;
+    updateProduct.mutate({ id: editingId, data: { name: editForm.name, category: editForm.category, unit: editForm.unit, imageUrl: editForm.imageUrl || undefined, isAvailable: editForm.isAvailable } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        setEditingId(null);
+        toast({ title: "Produit mis à jour" });
+      },
+      onError: () => toast({ title: "Erreur", description: "Impossible de mettre à jour.", variant: "destructive" }),
+    });
+  }
+
+  function confirmDelete() {
+    if (!deleteId) return;
+    deleteProduct.mutate({ id: deleteId }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        setDeleteId(null);
+        toast({ title: "Produit supprimé" });
+      },
+      onError: () => toast({ title: "Erreur", description: "Impossible de supprimer.", variant: "destructive" }),
+    });
+  }
+
+  function handleAdd() {
+    if (!addForm.name || !addForm.supplierId) {
+      toast({ title: "Champs requis", description: "Le nom et le fournisseur sont obligatoires.", variant: "destructive" });
+      return;
+    }
+    createProduct.mutate({
+      data: {
+        name: addForm.name,
+        nameLocal: addForm.nameLocal || undefined,
+        category: addForm.category,
+        unit: addForm.unit,
+        imageUrl: addForm.imageUrl || undefined,
+        supplierId: parseInt(addForm.supplierId),
+        isAvailable: addForm.isAvailable,
+      }
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        setShowAdd(false);
+        setAddForm({ name: "", nameLocal: "", category: "Légumes", unit: "kg", imageUrl: "", supplierId: "", isAvailable: true });
+        toast({ title: "Produit ajouté" });
+      },
+      onError: () => toast({ title: "Erreur", description: "Impossible d'ajouter le produit.", variant: "destructive" }),
+    });
+  }
+
+  if (isLoading) return <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{products?.length ?? 0} produit{(products?.length ?? 0) !== 1 ? "s" : ""}</p>
+        <Button size="sm" onClick={() => { setShowAdd(true); setEditingId(null); }} className="gap-2">
+          <Plus className="h-4 w-4" /> Ajouter un produit
+        </Button>
+      </div>
+
+      {/* Add product form */}
+      <AnimatePresence>
+        {showAdd && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            <Card className="border-primary/30 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold">Nouveau produit</CardTitle>
+                  <button onClick={() => setShowAdd(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Nom *</label>
+                    <Input value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} placeholder="ex: Tomates" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Nom local</label>
+                    <Input value={addForm.nameLocal} onChange={(e) => setAddForm({ ...addForm, nameLocal: e.target.value })} placeholder="Nom en bambara..." className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Catégorie</label>
+                    <Select value={addForm.category} onValueChange={(v) => setAddForm({ ...addForm, category: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>{PRODUCT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Unité</label>
+                    <Select value={addForm.unit} onValueChange={(v) => setAddForm({ ...addForm, unit: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>{PRODUCT_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs font-medium">URL de l'image</label>
+                    <Input value={addForm.imageUrl} onChange={(e) => setAddForm({ ...addForm, imageUrl: e.target.value })} placeholder="https://..." className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Fournisseur *</label>
+                    <Select value={addForm.supplierId} onValueChange={(v) => setAddForm({ ...addForm, supplierId: v })}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Choisir..." /></SelectTrigger>
+                      <SelectContent>{suppliers?.map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-3 pt-5">
+                    <Switch checked={addForm.isAvailable} onCheckedChange={(v) => setAddForm({ ...addForm, isAvailable: v })} id="add-available" />
+                    <label htmlFor="add-available" className="text-xs font-medium cursor-pointer">Disponible à la vente</label>
+                  </div>
+                </div>
+                {addForm.imageUrl && (
+                  <div className="flex items-center gap-3 p-2 bg-muted rounded-lg">
+                    <img src={addForm.imageUrl} alt="Aperçu" className="w-12 h-12 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    <span className="text-xs text-muted-foreground">Aperçu de l'image</span>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" onClick={handleAdd} disabled={createProduct.isPending} className="gap-2">
+                    <Save className="h-3.5 w-3.5" /> {createProduct.isPending ? "Ajout..." : "Ajouter le produit"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Annuler</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Product list */}
+      <div className="space-y-3">
+        {products?.map((product) => (
+          <motion.div key={product.id} layout>
+            <Card>
+              <CardContent className="pt-4">
+                {/* Product row */}
+                <div className="flex items-center gap-3">
+                  {/* Image */}
+                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-sm">{product.name}</p>
+                      <Badge variant={product.isAvailable ? "default" : "secondary"} className="text-xs">
+                        {product.isAvailable ? "Disponible" : "Indisponible"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{product.category} · {product.unit}</p>
+                  </div>
+                  {/* Actions */}
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => editingId === product.id ? setEditingId(null) : startEdit(product)}>
+                      {editingId === product.id ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:text-destructive" onClick={() => { setDeleteId(deleteId === product.id ? null : product.id); setEditingId(null); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Delete confirmation */}
+                <AnimatePresence>
+                  {deleteId === product.id && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                      <div className="mt-3 pt-3 border-t flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 text-destructive text-sm flex-1">
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          <span>Supprimer « {product.name} » définitivement ?</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="destructive" onClick={confirmDelete} disabled={deleteProduct.isPending} className="h-7 text-xs">
+                            {deleteProduct.isPending ? "..." : "Supprimer"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeleteId(null)} className="h-7 text-xs">Annuler</Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Edit form */}
+                <AnimatePresence>
+                  {editingId === product.id && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                      <div className="mt-3 pt-3 border-t space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium">Nom</label>
+                            <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="h-9" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium">Catégorie</label>
+                            <Select value={editForm.category} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
+                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                              <SelectContent>{PRODUCT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium">Unité</label>
+                            <Select value={editForm.unit} onValueChange={(v) => setEditForm({ ...editForm, unit: v })}>
+                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                              <SelectContent>{PRODUCT_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium">URL de l'image</label>
+                            <Input value={editForm.imageUrl} onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })} placeholder="https://..." className="h-9" />
+                          </div>
+                        </div>
+                        {editForm.imageUrl && (
+                          <div className="flex items-center gap-3 p-2 bg-muted rounded-lg">
+                            <img src={editForm.imageUrl} alt="Aperçu" className="w-12 h-12 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                            <span className="text-xs text-muted-foreground">Aperçu de l'image</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3">
+                          <Switch checked={editForm.isAvailable} onCheckedChange={(v) => setEditForm({ ...editForm, isAvailable: v })} id={`avail-${product.id}`} />
+                          <label htmlFor={`avail-${product.id}`} className="text-xs font-medium cursor-pointer">Disponible à la vente</label>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={saveEdit} disabled={updateProduct.isPending} className="gap-2 h-8">
+                            <Save className="h-3.5 w-3.5" /> {updateProduct.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-8">Annuler</Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {products?.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
+          <p>Aucun produit. Ajoutez votre premier produit ci-dessus.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -574,15 +863,19 @@ export default function Admin() {
         )}
 
         <Tabs defaultValue="prix">
-          <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="prix" data-testid="tab-prix" className="gap-2">
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="prix" data-testid="tab-prix" className="gap-1.5 text-xs sm:text-sm">
               <DollarSign className="h-3.5 w-3.5" />
-              Gestion des Prix
+              Prix
             </TabsTrigger>
-            <TabsTrigger value="orders" data-testid="tab-orders">Commandes ({orders?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="deliveries" data-testid="tab-deliveries">Livraisons ({deliveries?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="suppliers" data-testid="tab-suppliers">Fournisseurs ({suppliers?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings" className="gap-2 ml-auto">
+            <TabsTrigger value="produits" data-testid="tab-produits" className="gap-1.5 text-xs sm:text-sm">
+              <Package className="h-3.5 w-3.5" />
+              Produits
+            </TabsTrigger>
+            <TabsTrigger value="orders" data-testid="tab-orders" className="text-xs sm:text-sm">Commandes ({orders?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="deliveries" data-testid="tab-deliveries" className="text-xs sm:text-sm">Livraisons ({deliveries?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="suppliers" data-testid="tab-suppliers" className="text-xs sm:text-sm">Fournisseurs ({suppliers?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings" className="gap-1.5 text-xs sm:text-sm">
               <Settings className="h-3.5 w-3.5" />
               Paramètres
             </TabsTrigger>
@@ -591,6 +884,11 @@ export default function Admin() {
           {/* ── Price management tab ── */}
           <TabsContent value="prix" className="mt-6">
             <PriceEditor />
+          </TabsContent>
+
+          {/* ── Products tab ── */}
+          <TabsContent value="produits" className="mt-6">
+            <ProductManager />
           </TabsContent>
 
           {/* ── Orders ── */}
@@ -611,6 +909,19 @@ export default function Admin() {
                             <span className="text-sm text-muted-foreground">{order.customerName}</span>
                             <span className="text-sm text-muted-foreground">{order.customerPhone}</span>
                             {order.whatsappOrder && <Badge className="bg-[#25D366] text-white text-xs">WhatsApp</Badge>}
+                          {order.paymentMethod && order.paymentMethod !== "livraison" && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              {order.paymentMethod === "orange_money" && <Smartphone className="h-3 w-3 text-orange-500" />}
+                              {order.paymentMethod === "wave" && <Wallet className="h-3 w-3 text-blue-500" />}
+                              {order.paymentMethod === "orange_money" ? "Orange Money" : order.paymentMethod === "wave" ? "Wave" : order.paymentMethod}
+                            </Badge>
+                          )}
+                          {(!order.paymentMethod || order.paymentMethod === "livraison") && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <Banknote className="h-3 w-3 text-emerald-600" />
+                              Contre remboursement
+                            </Badge>
+                          )}
                           </div>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{order.deliveryAddress}</p>
                           <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString("fr-FR")}</p>
