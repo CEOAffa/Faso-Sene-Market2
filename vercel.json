@@ -1,7 +1,7 @@
 {
 "framework": "vite",
+"rootDirectory": "artifacts",
 "installCommand": "pnpm install",
 "buildCommand": "pnpm run build",
-"outputDirectory": "dist",
-"ignoreCommand": "echo ignoring api-server"
+"outputDirectory": "dist"
 }
