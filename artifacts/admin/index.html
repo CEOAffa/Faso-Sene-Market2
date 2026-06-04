@@ -251,13 +251,13 @@ cat > /mnt/user-data/outputs/admin-v2.html << 'HTMLEOF'
   const SUPABASE_URL = 'https://qemkisjyyltbvqdcurpg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88';
   const ADMIN_PASSWORD = 'fasosene2024';
-  const headers = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
+  const headers = { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_6tB7OHqsUoIo0zkrgLU5wg_jFvW3jMr', 'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88` };
 
   async function api(path, method = 'GET', body = null) {
     const opts = { method, headers };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
-    if (!res.ok) { const e = await res.json(); throw e; }
+    if (!res.ok && res.status !== 201) { const e = await res.json(); throw e; }
     return method === 'DELETE' ? null : res.json();
   }
 
