@@ -24,7 +24,7 @@
     .login-sub { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 36px; }
     .field { margin-bottom: 16px; }
     .field label { display: block; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; }
-    .field input, .field select, .field textarea { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s; }
+    .field input, .field select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s; }
     .field input:focus, .field select:focus { border-color: var(--gold); }
     .btn-primary { width: 100%; padding: 14px; background: var(--gold); color: #0d0f0a; border: none; font-family: var(--font-mono); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; margin-top: 8px; transition: background 0.2s; }
     .btn-primary:hover { background: var(--gold2); }
@@ -98,6 +98,7 @@
     .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
     .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--green); color: var(--green2); font-family: var(--font-mono); font-size: 12px; z-index: 999; display: none; animation: slideIn 0.3s ease; }
     @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .product-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
   </style>
 </head>
 <body>
@@ -130,8 +131,6 @@
     <div class="tab" onclick="showTab('categories')">Catégories</div>
   </div>
   <div class="main">
-
-    <!-- DASHBOARD -->
     <div class="section active" id="section-dashboard">
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-num" id="stat-produits">—</div><div class="stat-label">Produits</div></div>
@@ -140,8 +139,6 @@
         <div class="stat-card"><div class="stat-num" id="stat-prix">—</div><div class="stat-label">Prix enregistrés</div></div>
       </div>
     </div>
-
-    <!-- PRODUITS -->
     <div class="section" id="section-produits">
       <div class="section-header">
         <div class="section-title">Produits</div>
@@ -149,8 +146,6 @@
       </div>
       <div class="products-list" id="products-list"><div class="loading">Chargement...</div></div>
     </div>
-
-    <!-- PRIX -->
     <div class="section" id="section-prix">
       <div class="section-header">
         <div class="section-title">Prix du marché</div>
@@ -158,8 +153,6 @@
       </div>
       <div class="products-list" id="prix-list"><div class="loading">Chargement...</div></div>
     </div>
-
-    <!-- CATEGORIES -->
     <div class="section" id="section-categories">
       <div class="section-header">
         <div class="section-title">Catégories</div>
@@ -182,7 +175,13 @@
       <div class="form-row">
         <div class="field"><label>Prix (FCFA)</label><input type="number" id="edit-prix" placeholder="0" /></div>
         <div class="field"><label>Unité</label>
-          <select id="edit-unite"><option value="kg">kg</option><option value="sac">sac</option><option value="tonne">tonne</option><option value="litre">litre</option><option value="pièce">pièce</option></select>
+          <select id="edit-unite">
+            <option value="kg">kg</option>
+            <option value="sac">sac</option>
+            <option value="tonne">tonne</option>
+            <option value="litre">litre</option>
+            <option value="pièce">pièce</option>
+          </select>
         </div>
       </div>
       <div class="form-row">
@@ -207,13 +206,17 @@
     <div class="modal-header"><div class="modal-title" id="prix-modal-title">Nouveau prix</div></div>
     <div class="modal-body">
       <input type="hidden" id="prix-edit-id" />
-      <div class="field"><label>Nom du produit</label>
-        <select id="prix-produit-nom"></select>
-      </div>
+      <div class="field"><label>Nom du produit</label><select id="prix-produit-nom"></select></div>
       <div class="form-row">
         <div class="field"><label>Prix (FCFA)</label><input type="number" id="prix-valeur" placeholder="0" /></div>
         <div class="field"><label>Unité</label>
-          <select id="prix-unite"><option value="kg">kg</option><option value="sac">sac</option><option value="tonne">tonne</option><option value="litre">litre</option><option value="pièce">pièce</option></select>
+          <select id="prix-unite">
+            <option value="kg">kg</option>
+            <option value="sac">sac</option>
+            <option value="tonne">tonne</option>
+            <option value="litre">litre</option>
+            <option value="pièce">pièce</option>
+          </select>
         </div>
       </div>
       <div class="field"><label>Tendance</label>
@@ -251,14 +254,19 @@
   const SUPABASE_URL = 'https://qemkisjyyltbvqdcurpg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88';
   const ADMIN_PASSWORD = 'fasosene2024';
-  const headers = { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_6tB7OHqsUoIo0zkrgLU5wg_jFvW3jMr', 'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88` };
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY
+  };
 
-  async function api(path, method = 'GET', body = null) {
-    const opts = { method, headers };
+  async function api(path, method, body) {
+    method = method || 'GET';
+    const opts = { method: method, headers: headers };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
-    if (!res.ok && res.status !== 201) { const e = await res.json(); throw e; }
-    return method === 'DELETE' ? null : res.json();
+    if (method === 'DELETE') return null;
+    return res.json();
   }
 
   function login() {
@@ -268,22 +276,42 @@
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       loadAll();
-    } else { document.getElementById('error-msg').style.display = 'block'; }
+    } else {
+      document.getElementById('error-msg').style.display = 'block';
+    }
   }
-  document.getElementById('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-  function logout() { sessionStorage.removeItem('admin_ok'); location.reload(); }
-  if (sessionStorage.getItem('admin_ok')) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('app').style.display = 'block'; }
+
+  document.getElementById('password-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') login();
+  });
+
+  function logout() {
+    sessionStorage.removeItem('admin_ok');
+    location.reload();
+  }
+
+  if (sessionStorage.getItem('admin_ok')) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
 
   function showTab(name) {
-    document.querySelectorAll('.tab').forEach((t, i) => { t.classList.toggle('active', ['dashboard','produits','prix','categories'][i] === name); });
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    var tabs = ['dashboard', 'produits', 'prix', 'categories'];
+    document.querySelectorAll('.tab').forEach(function(t, i) {
+      t.classList.toggle('active', tabs[i] === name);
+    });
+    document.querySelectorAll('.section').forEach(function(s) {
+      s.classList.remove('active');
+    });
     document.getElementById('section-' + name).classList.add('active');
     if (name === 'produits') loadProduits();
     if (name === 'prix') loadPrix();
     if (name === 'categories') loadCategories();
   }
 
-  let produits = [], categories = [], prixList = [];
+  var produits = [];
+  var categories = [];
+  var prixList = [];
 
   async function loadAll() {
     try {
@@ -292,160 +320,242 @@
       prixList = await api('prix?select=*&order=created_at.desc');
       document.getElementById('stat-produits').textContent = produits.length;
       document.getElementById('stat-categories').textContent = categories.length;
-      document.getElementById('stat-dispo').textContent = produits.filter(p => p.disponible).length;
+      document.getElementById('stat-dispo').textContent = produits.filter(function(p) { return p.disponible; }).length;
       document.getElementById('stat-prix').textContent = prixList.length;
     } catch(e) { console.error(e); }
   }
 
   async function loadProduits() {
-    const list = document.getElementById('products-list');
+    var list = document.getElementById('products-list');
     list.innerHTML = '<div class="loading">Chargement...</div>';
     try {
       produits = await api('produits?select=*,categories(nom)&order=created_at.desc');
       if (!produits.length) { list.innerHTML = '<div class="empty">Aucun produit</div>'; return; }
-      list.innerHTML = produits.map(p => `
-        <div class="product-item">
-          <div class="product-info">
-            <div class="product-name">${p.nom}</div>
-            <div class="product-meta">${p.categories?.nom || '—'} · stock: ${p.stock || 0} ${p.unite}</div>
-          </div>
-          <div class="product-price">${Number(p.prix).toLocaleString()} FCFA</div>
-          <span class="dispo-badge ${p.disponible ? 'oui' : 'non'}">${p.disponible ? 'Dispo' : 'Indispo'}</span>
-          <div class="product-actions">
-            <button class="btn-edit" onclick="editProduit(${p.id})">Éditer</button>
-            <button class="btn-delete" onclick="deleteProduit(${p.id})">✕</button>
-          </div>
-        </div>`).join('');
+      list.innerHTML = produits.map(function(p) {
+        var img = p.image_url ? '<img src="' + p.image_url + '" class="product-thumb" onerror="this.style.display=\'none\'" />' : '';
+        return '<div class="product-item">' +
+          img +
+          '<div class="product-info">' +
+            '<div class="product-name">' + p.nom + '</div>' +
+            '<div class="product-meta">' + (p.categories ? p.categories.nom : '—') + ' · stock: ' + (p.stock || 0) + ' ' + p.unite + '</div>' +
+          '</div>' +
+          '<div class="product-price">' + Number(p.prix).toLocaleString() + ' FCFA</div>' +
+          '<span class="dispo-badge ' + (p.disponible ? 'oui' : 'non') + '">' + (p.disponible ? 'Dispo' : 'Indispo') + '</span>' +
+          '<div class="product-actions">' +
+            '<button class="btn-edit" onclick="editProduit(' + p.id + ')">Éditer</button>' +
+            '<button class="btn-delete" onclick="deleteProduit(' + p.id + ')">✕</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     } catch(e) { list.innerHTML = '<div class="empty">Erreur de chargement</div>'; }
   }
 
   async function loadPrix() {
-    const list = document.getElementById('prix-list');
+    var list = document.getElementById('prix-list');
     list.innerHTML = '<div class="loading">Chargement...</div>';
     try {
       prixList = await api('prix?select=*&order=created_at.desc');
       if (!prixList.length) { list.innerHTML = '<div class="empty">Aucun prix enregistré</div>'; return; }
-      list.innerHTML = prixList.map(p => `
-        <div class="product-item">
-          <div class="product-info">
-            <div class="product-name">${p.produit_nom}</div>
-            <div class="product-meta">${new Date(p.created_at).toLocaleDateString('fr-FR')}</div>
-          </div>
-          <div class="product-price">${Number(p.prix_par_unite).toLocaleString()} FCFA/${p.unite}</div>
-          <span class="trend-badge ${p.tendance === 'up' ? 'trend-up' : p.tendance === 'down' ? 'trend-down' : 'trend-stable'}">${p.tendance === 'up' ? '⬆️' : p.tendance === 'down' ? '⬇️' : '➡️'}</span>
-          <div class="product-actions">
-            <button class="btn-edit" onclick="editPrix(${p.id})">Éditer</button>
-            <button class="btn-delete" onclick="deletePrix(${p.id})">✕</button>
-          </div>
-        </div>`).join('');
+      list.innerHTML = prixList.map(function(p) {
+        var trendClass = p.tendance === 'up' ? 'trend-up' : p.tendance === 'down' ? 'trend-down' : 'trend-stable';
+        var trendIcon = p.tendance === 'up' ? '⬆️' : p.tendance === 'down' ? '⬇️' : '➡️';
+        return '<div class="product-item">' +
+          '<div class="product-info">' +
+            '<div class="product-name">' + p.produit_nom + '</div>' +
+            '<div class="product-meta">' + new Date(p.created_at).toLocaleDateString('fr-FR') + '</div>' +
+          '</div>' +
+          '<div class="product-price">' + Number(p.prix_par_unite).toLocaleString() + ' FCFA/' + p.unite + '</div>' +
+          '<span class="trend-badge ' + trendClass + '">' + trendIcon + '</span>' +
+          '<div class="product-actions">' +
+            '<button class="btn-edit" onclick="editPrix(' + p.id + ')">Éditer</button>' +
+            '<button class="btn-delete" onclick="deletePrix(' + p.id + ')">✕</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     } catch(e) { list.innerHTML = '<div class="empty">Erreur de chargement</div>'; }
   }
 
   async function loadCategories() {
-    const list = document.getElementById('categories-list');
+    var list = document.getElementById('categories-list');
     if (list) list.innerHTML = '<div class="loading">Chargement...</div>';
     try {
       categories = await api('categories?select=*&order=nom');
       if (list) {
-        if (!categories.length) { list.innerHTML = '<div class="empty">Aucune catégorie</div>'; return; }
-        list.innerHTML = categories.map(c => `
-          <div class="product-item">
-            <div class="product-info"><div class="product-name">${c.nom}</div></div>
-            <button class="btn-delete" onclick="deleteCategorie(${c.id})">✕ Supprimer</button>
-          </div>`).join('');
+        if (!categories.length) { list.innerHTML = '<div class="empty">Aucune catégorie</div>'; }
+        else {
+          list.innerHTML = categories.map(function(c) {
+            return '<div class="product-item">' +
+              '<div class="product-info"><div class="product-name">' + c.nom + '</div></div>' +
+              '<button class="btn-delete" onclick="deleteCategorie(' + c.id + ')">✕ Supprimer</button>' +
+            '</div>';
+          }).join('');
+        }
       }
-      const sel = document.getElementById('edit-categorie');
-      sel.innerHTML = '<option value="">— Choisir —</option>' + categories.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
-      const prixSel = document.getElementById('prix-produit-nom');
+      var sel = document.getElementById('edit-categorie');
+      sel.innerHTML = '<option value="">— Choisir —</option>' + categories.map(function(c) {
+        return '<option value="' + c.id + '">' + c.nom + '</option>';
+      }).join('');
+      var prixSel = document.getElementById('prix-produit-nom');
       if (prixSel && produits.length) {
-        prixSel.innerHTML = produits.map(p => `<option value="${p.nom}">${p.nom}</option>`).join('');
+        prixSel.innerHTML = produits.map(function(p) {
+          return '<option value="' + p.nom + '">' + p.nom + '</option>';
+        }).join('');
       }
     } catch(e) {}
   }
 
-  function openModal(p = null) {
+  function openModal(p) {
+    p = p || null;
     document.getElementById('edit-id').value = p ? p.id : '';
     document.getElementById('modal-title').textContent = p ? 'Modifier le produit' : 'Nouveau produit';
     document.getElementById('edit-nom').value = p ? p.nom : '';
     document.getElementById('edit-desc').value = p ? (p.description || '') : '';
+    document.getElementById('edit-image').value = p ? (p.image_url || '') : '';
     document.getElementById('edit-prix').value = p ? p.prix : '';
     document.getElementById('edit-unite').value = p ? p.unite : 'kg';
     document.getElementById('edit-stock').value = p ? p.stock : '';
     document.getElementById('edit-categorie').value = p ? (p.categorie_id || '') : '';
-    disponible: document.getElementById('edit-dispo').checked, image_url: document.getElementById('edit-image').value || null, updated_at
-    document.getElementById('edit-image').value = p ? (p.image_url || '') : '';
+    document.getElementById('edit-dispo').checked = p ? p.disponible : true;
     document.getElementById('modal-produit').classList.add('open');
   }
+
   function closeModal() { document.getElementById('modal-produit').classList.remove('open'); }
-  function editProduit(id) { const p = produits.find(x => x.id === id); if (p) openModal(p); }
+
+  function editProduit(id) {
+    var p = produits.find(function(x) { return x.id === id; });
+    if (p) openModal(p);
+  }
 
   async function saveProduit() {
-    const id = document.getElementById('edit-id').value;
-    const data = { nom: document.getElementById('edit-nom').value, description: document.getElementById('edit-desc').value, prix: parseFloat(document.getElementById('edit-prix').value), unite: document.getElementById('edit-unite').value, stock: parseInt(document.getElementById('edit-stock').value) || 0, categorie_id: document.getElementById('edit-categorie').value || null, disponible: document.getElementById('edit-dispo').checked, updated_at: new Date().toISOString() };
+    var id = document.getElementById('edit-id').value;
+    var data = {
+      nom: document.getElementById('edit-nom').value,
+      description: document.getElementById('edit-desc').value,
+      image_url: document.getElementById('edit-image').value || null,
+      prix: parseFloat(document.getElementById('edit-prix').value),
+      unite: document.getElementById('edit-unite').value,
+      stock: parseInt(document.getElementById('edit-stock').value) || 0,
+      categorie_id: document.getElementById('edit-categorie').value || null,
+      disponible: document.getElementById('edit-dispo').checked,
+      updated_at: new Date().toISOString()
+    };
     try {
-      if (id) { await api(`produits?id=eq.${id}`, 'PATCH', data); showToast('Produit mis à jour ✓'); }
-      else { await api('produits', 'POST', data); showToast('Produit ajouté ✓'); }
-      closeModal(); loadProduits(); loadAll();
-    } catch(e) { showToast('Erreur: ' + (e.message || JSON.stringify(e))); }
+      if (id) {
+        await api('produits?id=eq.' + id, 'PATCH', data);
+        showToast('Produit mis à jour ✓');
+      } else {
+        await api('produits', 'POST', data);
+        showToast('Produit ajouté ✓');
+      }
+      closeModal();
+      loadProduits();
+      loadAll();
+    } catch(e) {
+      showToast('Erreur lors de la sauvegarde');
+    }
   }
 
   async function deleteProduit(id) {
     if (!confirm('Supprimer ce produit ?')) return;
-    await api(`produits?id=eq.${id}`, 'DELETE');
-    showToast('Produit supprimé'); loadProduits(); loadAll();
+    await api('produits?id=eq.' + id, 'DELETE');
+    showToast('Produit supprimé');
+    loadProduits();
+    loadAll();
   }
 
-  function openPrixModal(p = null) {
+  function openPrixModal(p) {
+    p = p || null;
     document.getElementById('prix-edit-id').value = p ? p.id : '';
     document.getElementById('prix-modal-title').textContent = p ? 'Modifier le prix' : 'Nouveau prix';
-    const sel = document.getElementById('prix-produit-nom');
-    sel.innerHTML = produits.map(pr => `<option value="${pr.nom}">${pr.nom}</option>`).join('');
-    if (p) { sel.value = p.produit_nom; document.getElementById('prix-valeur').value = p.prix_par_unite; document.getElementById('prix-unite').value = p.unite; document.getElementById('prix-tendance').value = p.tendance || 'stable'; }
-    else { document.getElementById('prix-valeur').value = ''; document.getElementById('prix-unite').value = 'kg'; document.getElementById('prix-tendance').value = 'stable'; }
+    var sel = document.getElementById('prix-produit-nom');
+    sel.innerHTML = produits.map(function(pr) {
+      return '<option value="' + pr.nom + '">' + pr.nom + '</option>';
+    }).join('');
+    if (p) {
+      sel.value = p.produit_nom;
+      document.getElementById('prix-valeur').value = p.prix_par_unite;
+      document.getElementById('prix-unite').value = p.unite;
+      document.getElementById('prix-tendance').value = p.tendance || 'stable';
+    } else {
+      document.getElementById('prix-valeur').value = '';
+      document.getElementById('prix-unite').value = 'kg';
+      document.getElementById('prix-tendance').value = 'stable';
+    }
     document.getElementById('modal-prix').classList.add('open');
   }
+
   function closePrixModal() { document.getElementById('modal-prix').classList.remove('open'); }
-  function editPrix(id) { const p = prixList.find(x => x.id === id); if (p) openPrixModal(p); }
+
+  function editPrix(id) {
+    var p = prixList.find(function(x) { return x.id === id; });
+    if (p) openPrixModal(p);
+  }
 
   async function savePrix() {
-    const id = document.getElementById('prix-edit-id').value;
-    const data = { produit_nom: document.getElementById('prix-produit-nom').value, prix_par_unite: parseFloat(document.getElementById('prix-valeur').value), unite: document.getElementById('prix-unite').value, tendance: document.getElementById('prix-tendance').value, date: new Date().toISOString().split('T')[0] };
+    var id = document.getElementById('prix-edit-id').value;
+    var data = {
+      produit_nom: document.getElementById('prix-produit-nom').value,
+      prix_par_unite: parseFloat(document.getElementById('prix-valeur').value),
+      unite: document.getElementById('prix-unite').value,
+      tendance: document.getElementById('prix-tendance').value,
+      date: new Date().toISOString().split('T')[0]
+    };
     try {
-      if (id) { await api(`prix?id=eq.${id}`, 'PATCH', data); showToast('Prix mis à jour ✓'); }
-      else { await api('prix', 'POST', data); showToast('Prix ajouté ✓'); }
-      closePrixModal(); loadPrix(); loadAll();
-    } catch(e) { showToast('Erreur: ' + (e.message || JSON.stringify(e))); }
+      if (id) {
+        await api('prix?id=eq.' + id, 'PATCH', data);
+        showToast('Prix mis à jour ✓');
+      } else {
+        await api('prix', 'POST', data);
+        showToast('Prix ajouté ✓');
+      }
+      closePrixModal();
+      loadPrix();
+      loadAll();
+    } catch(e) {
+      showToast('Erreur lors de la sauvegarde');
+    }
   }
 
   async function deletePrix(id) {
     if (!confirm('Supprimer ce prix ?')) return;
-    await api(`prix?id=eq.${id}`, 'DELETE');
-    showToast('Prix supprimé'); loadPrix(); loadAll();
+    await api('prix?id=eq.' + id, 'DELETE');
+    showToast('Prix supprimé');
+    loadPrix();
+    loadAll();
   }
 
-  function openCatModal() { document.getElementById('modal-categorie').classList.add('open'); document.getElementById('cat-nom').value = ''; }
+  function openCatModal() {
+    document.getElementById('modal-categorie').classList.add('open');
+    document.getElementById('cat-nom').value = '';
+  }
+
   function closeCatModal() { document.getElementById('modal-categorie').classList.remove('open'); }
 
   async function saveCategorie() {
-    const nom = document.getElementById('cat-nom').value.trim();
+    var nom = document.getElementById('cat-nom').value.trim();
     if (!nom) return;
-    await api('categories', 'POST', { nom });
-    showToast('Catégorie ajoutée ✓'); closeCatModal(); loadCategories(); loadAll();
+    await api('categories', 'POST', { nom: nom });
+    showToast('Catégorie ajoutée ✓');
+    closeCatModal();
+    loadCategories();
+    loadAll();
   }
 
   async function deleteCategorie(id) {
     if (!confirm('Supprimer cette catégorie ?')) return;
-    await api(`categories?id=eq.${id}`, 'DELETE');
-    showToast('Catégorie supprimée'); loadCategories();
+    await api('categories?id=eq.' + id, 'DELETE');
+    showToast('Catégorie supprimée');
+    loadCategories();
   }
 
   function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 3000);
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(function() { t.style.display = 'none'; }, 3000);
   }
 
   if (sessionStorage.getItem('admin_ok')) loadAll();
 </script>
 </body>
-</html> 
+</html>
