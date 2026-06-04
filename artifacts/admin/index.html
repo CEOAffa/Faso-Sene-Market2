@@ -372,7 +372,7 @@
     document.getElementById('edit-unite').value = p ? p.unite : 'kg';
     document.getElementById('edit-stock').value = p ? p.stock : '';
     document.getElementById('edit-categorie').value = p ? (p.categorie_id || '') : '';
-    document.getElementById('edit-dispo').checked = p ? p.disponible : true;
+    disponible: document.getElementById('edit-dispo').checked, image_url: document.getElementById('edit-image').value || null, updated_at
     document.getElementById('edit-image').value = p ? (p.image_url || '') : '';
     document.getElementById('modal-produit').classList.add('open');
   }
