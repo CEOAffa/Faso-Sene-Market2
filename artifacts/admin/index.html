@@ -46,7 +46,7 @@
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); padding: 20px 16px; position: relative; overflow: hidden; }
     .stat-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold), transparent); }
-    .stat-num { font-family: var(--font-display); font-size: 32px; color: var(--gold); line-height: 1; }
+    .stat-num { font-family: var(--font-display); font-size: 28px; color: var(--gold); line-height: 1; }
     .stat-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-top: 6px; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
     .section-title { font-family: var(--font-display); font-size: 22px; color: var(--text); }
@@ -72,6 +72,22 @@
     .trend-up { background: #2e1a1a; color: #e74c3c; }
     .trend-down { background: #1a2e1c; color: var(--green2); }
     .trend-stable { background: var(--surface2); color: var(--muted); }
+    .statut-badge { font-family: var(--font-mono); font-size: 9px; padding: 4px 8px; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
+    .statut-en_attente { background: #2e2a1a; color: #e8c86a; }
+    .statut-confirme { background: #1a2e1c; color: var(--green2); }
+    .statut-livre { background: #1a1e2e; color: #6ab0c8; }
+    .statut-annule { background: #2e1a1a; color: #e74c3c; }
+    .commande-card { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+    .commande-card:hover { border-color: var(--gold); }
+    .commande-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .commande-num { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .commande-client { font-size: 15px; font-weight: 500; color: var(--text); }
+    .commande-tel { font-family: var(--font-mono); font-size: 11px; color: var(--gold); }
+    .commande-adresse { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .commande-produits { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .commande-total { font-family: var(--font-mono); font-size: 15px; color: var(--gold); font-weight: 500; }
+    .commande-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+    .statut-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: var(--font-mono); font-size: 10px; padding: 4px 8px; cursor: pointer; text-transform: uppercase; outline: none; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.open { display: flex; }
     .modal { background: var(--surface); border: 1px solid var(--border); width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; position: relative; }
@@ -99,6 +115,7 @@
     .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; background: var(--surface); border: 1px solid var(--green); color: var(--green2); font-family: var(--font-mono); font-size: 12px; z-index: 999; display: none; animation: slideIn 0.3s ease; }
     @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .product-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+    .new-badge { background: #c0392b; color: #fff; font-family: var(--font-mono); font-size: 9px; padding: 2px 6px; text-transform: uppercase; margin-left: 6px; }
   </style>
 </head>
 <body>
@@ -126,19 +143,32 @@
   </div>
   <div class="tabs">
     <div class="tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="tab" onclick="showTab('commandes')">Commandes <span class="new-badge" id="badge-commandes" style="display:none">0</span></div>
     <div class="tab" onclick="showTab('produits')">Produits</div>
     <div class="tab" onclick="showTab('prix')">Prix</div>
     <div class="tab" onclick="showTab('categories')">Catégories</div>
   </div>
   <div class="main">
+
+    <!-- DASHBOARD -->
     <div class="section active" id="section-dashboard">
       <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" id="stat-commandes">—</div><div class="stat-label">Commandes</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-attente">—</div><div class="stat-label">En attente</div></div>
         <div class="stat-card"><div class="stat-num" id="stat-produits">—</div><div class="stat-label">Produits</div></div>
-        <div class="stat-card"><div class="stat-num" id="stat-categories">—</div><div class="stat-label">Catégories</div></div>
-        <div class="stat-card"><div class="stat-num" id="stat-dispo">—</div><div class="stat-label">Disponibles</div></div>
-        <div class="stat-card"><div class="stat-num" id="stat-prix">—</div><div class="stat-label">Prix enregistrés</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-revenu">—</div><div class="stat-label">Revenu total</div></div>
       </div>
     </div>
+
+    <!-- COMMANDES -->
+    <div class="section" id="section-commandes">
+      <div class="section-header">
+        <div class="section-title">Commandes</div>
+      </div>
+      <div id="commandes-list"><div class="loading">Chargement...</div></div>
+    </div>
+
+    <!-- PRODUITS -->
     <div class="section" id="section-produits">
       <div class="section-header">
         <div class="section-title">Produits</div>
@@ -146,6 +176,8 @@
       </div>
       <div class="products-list" id="products-list"><div class="loading">Chargement...</div></div>
     </div>
+
+    <!-- PRIX -->
     <div class="section" id="section-prix">
       <div class="section-header">
         <div class="section-title">Prix du marché</div>
@@ -153,6 +185,8 @@
       </div>
       <div class="products-list" id="prix-list"><div class="loading">Chargement...</div></div>
     </div>
+
+    <!-- CATEGORIES -->
     <div class="section" id="section-categories">
       <div class="section-header">
         <div class="section-title">Catégories</div>
@@ -251,10 +285,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const SUPABASE_URL = 'https://qemkisjyyltbvqdcurpg.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88';
-  const ADMIN_PASSWORD = 'fasosene2024';
-  const headers = {
+  var SUPABASE_URL = 'https://qemkisjyyltbvqdcurpg.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88';
+  var ADMIN_PASSWORD = 'fasosene2024';
+  var headers = {
     'Content-Type': 'application/json',
     'apikey': SUPABASE_KEY,
     'Authorization': 'Bearer ' + SUPABASE_KEY
@@ -262,15 +296,15 @@
 
   async function api(path, method, body) {
     method = method || 'GET';
-    const opts = { method: method, headers: headers };
+    var opts = { method: method, headers: headers };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
+    var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
     if (method === 'DELETE') return null;
     return res.json();
   }
 
   function login() {
-    const val = document.getElementById('password-input').value;
+    var val = document.getElementById('password-input').value;
     if (val === ADMIN_PASSWORD) {
       sessionStorage.setItem('admin_ok', '1');
       document.getElementById('login-screen').style.display = 'none';
@@ -281,48 +315,100 @@
     }
   }
 
-  document.getElementById('password-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') login();
-  });
-
-  function logout() {
-    sessionStorage.removeItem('admin_ok');
-    location.reload();
-  }
-
+  document.getElementById('password-input').addEventListener('keydown', function(e) { if (e.key === 'Enter') login(); });
+  function logout() { sessionStorage.removeItem('admin_ok'); location.reload(); }
   if (sessionStorage.getItem('admin_ok')) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
   }
 
   function showTab(name) {
-    var tabs = ['dashboard', 'produits', 'prix', 'categories'];
-    document.querySelectorAll('.tab').forEach(function(t, i) {
-      t.classList.toggle('active', tabs[i] === name);
-    });
-    document.querySelectorAll('.section').forEach(function(s) {
-      s.classList.remove('active');
-    });
+    var tabs = ['dashboard', 'commandes', 'produits', 'prix', 'categories'];
+    document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', tabs[i] === name); });
+    document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
     document.getElementById('section-' + name).classList.add('active');
+    if (name === 'commandes') loadCommandes();
     if (name === 'produits') loadProduits();
     if (name === 'prix') loadPrix();
     if (name === 'categories') loadCategories();
   }
 
-  var produits = [];
-  var categories = [];
-  var prixList = [];
+  var produits = [], categories = [], prixList = [], commandes = [];
 
   async function loadAll() {
     try {
       produits = await api('produits?select=*');
       categories = await api('categories?select=*&order=nom');
       prixList = await api('prix?select=*&order=created_at.desc');
-      document.getElementById('stat-produits').textContent = produits.length;
-      document.getElementById('stat-categories').textContent = categories.length;
-      document.getElementById('stat-dispo').textContent = produits.filter(function(p) { return p.disponible; }).length;
-      document.getElementById('stat-prix').textContent = prixList.length;
+      commandes = await api('commandes?select=*&order=created_at.desc');
+      if (!Array.isArray(commandes)) commandes = [];
+      var attente = commandes.filter(function(c) { return c.statut === 'en_attente'; });
+      document.getElementById('stat-commandes').textContent = commandes.length;
+      document.getElementById('stat-attente').textContent = attente.length;
+      document.getElementById('stat-produits').textContent = Array.isArray(produits) ? produits.length : 0;
+      var revenu = commandes.reduce(function(s, c) { return s + (parseFloat(c.total) || 0); }, 0);
+      document.getElementById('stat-revenu').textContent = revenu.toLocaleString('fr-FR') + ' F';
+      if (attente.length > 0) {
+        var badge = document.getElementById('badge-commandes');
+        badge.textContent = attente.length;
+        badge.style.display = 'inline';
+      }
     } catch(e) { console.error(e); }
+  }
+
+  async function loadCommandes() {
+    var list = document.getElementById('commandes-list');
+    list.innerHTML = '<div class="loading">Chargement...</div>';
+    try {
+      commandes = await api('commandes?select=*&order=created_at.desc');
+      if (!Array.isArray(commandes) || !commandes.length) {
+        list.innerHTML = '<div class="empty">Aucune commande reçue</div>';
+        return;
+      }
+      list.innerHTML = commandes.map(function(c, i) {
+        var produitsStr = '';
+        if (c.produits && Array.isArray(c.produits)) {
+          produitsStr = c.produits.map(function(p) { return p.nom + ' x' + p.qty; }).join(', ');
+        }
+        var date = new Date(c.created_at).toLocaleDateString('fr-FR') + ' ' + new Date(c.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+        return '<div class="commande-card">' +
+          '<div class="commande-header">' +
+            '<span class="commande-num">#' + (i+1) + ' · ' + date + '</span>' +
+            '<span class="statut-badge statut-' + c.statut + '">' + c.statut.replace('_', ' ') + '</span>' +
+          '</div>' +
+          '<div class="commande-client">' + c.client_nom + '</div>' +
+          '<div class="commande-tel">' + c.client_telephone + '</div>' +
+          '<div class="commande-adresse">📍 ' + c.adresse_livraison + '</div>' +
+          (produitsStr ? '<div class="commande-produits">🛒 ' + produitsStr + '</div>' : '') +
+          '<div class="commande-footer">' +
+            '<span class="commande-total">' + Number(c.total).toLocaleString('fr-FR') + ' FCFA</span>' +
+            '<div style="display:flex;gap:8px;align-items:center">' +
+              '<select class="statut-select" onchange="updateStatut(' + c.id + ', this.value)">' +
+                '<option value="en_attente"' + (c.statut==='en_attente'?' selected':'') + '>En attente</option>' +
+                '<option value="confirme"' + (c.statut==='confirme'?' selected':'') + '>Confirmé</option>' +
+                '<option value="livre"' + (c.statut==='livre'?' selected':'') + '>Livré</option>' +
+                '<option value="annule"' + (c.statut==='annule'?' selected':'') + '>Annulé</option>' +
+              '</select>' +
+              '<button class="btn-delete" onclick="deleteCommande(' + c.id + ')">✕</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch(e) { list.innerHTML = '<div class="empty">Erreur de chargement</div>'; }
+  }
+
+  async function updateStatut(id, statut) {
+    await api('commandes?id=eq.' + id, 'PATCH', { statut: statut });
+    showToast('Statut mis à jour ✓');
+    loadAll();
+  }
+
+  async function deleteCommande(id) {
+    if (!confirm('Supprimer cette commande ?')) return;
+    await api('commandes?id=eq.' + id, 'DELETE');
+    showToast('Commande supprimée');
+    loadCommandes();
+    loadAll();
   }
 
   async function loadProduits() {
@@ -330,24 +416,22 @@
     list.innerHTML = '<div class="loading">Chargement...</div>';
     try {
       produits = await api('produits?select=*,categories(nom)&order=created_at.desc');
-      if (!produits.length) { list.innerHTML = '<div class="empty">Aucun produit</div>'; return; }
+      if (!Array.isArray(produits) || !produits.length) { list.innerHTML = '<div class="empty">Aucun produit</div>'; return; }
       list.innerHTML = produits.map(function(p) {
         var img = p.image_url ? '<img src="' + p.image_url + '" class="product-thumb" onerror="this.style.display=\'none\'" />' : '';
-        return '<div class="product-item">' +
-          img +
+        return '<div class="product-item">' + img +
           '<div class="product-info">' +
             '<div class="product-name">' + p.nom + '</div>' +
-            '<div class="product-meta">' + (p.categories ? p.categories.nom : '—') + ' · stock: ' + (p.stock || 0) + ' ' + p.unite + '</div>' +
+            '<div class="product-meta">' + (p.categories ? p.categories.nom : '—') + ' · stock: ' + (p.stock||0) + ' ' + p.unite + '</div>' +
           '</div>' +
           '<div class="product-price">' + Number(p.prix).toLocaleString() + ' FCFA</div>' +
-          '<span class="dispo-badge ' + (p.disponible ? 'oui' : 'non') + '">' + (p.disponible ? 'Dispo' : 'Indispo') + '</span>' +
+          '<span class="dispo-badge ' + (p.disponible?'oui':'non') + '">' + (p.disponible?'Dispo':'Indispo') + '</span>' +
           '<div class="product-actions">' +
             '<button class="btn-edit" onclick="editProduit(' + p.id + ')">Éditer</button>' +
             '<button class="btn-delete" onclick="deleteProduit(' + p.id + ')">✕</button>' +
-          '</div>' +
-        '</div>';
+          '</div></div>';
       }).join('');
-    } catch(e) { list.innerHTML = '<div class="empty">Erreur de chargement</div>'; }
+    } catch(e) { list.innerHTML = '<div class="empty">Erreur</div>'; }
   }
 
   async function loadPrix() {
@@ -355,24 +439,21 @@
     list.innerHTML = '<div class="loading">Chargement...</div>';
     try {
       prixList = await api('prix?select=*&order=created_at.desc');
-      if (!prixList.length) { list.innerHTML = '<div class="empty">Aucun prix enregistré</div>'; return; }
+      if (!Array.isArray(prixList) || !prixList.length) { list.innerHTML = '<div class="empty">Aucun prix</div>'; return; }
       list.innerHTML = prixList.map(function(p) {
-        var trendClass = p.tendance === 'up' ? 'trend-up' : p.tendance === 'down' ? 'trend-down' : 'trend-stable';
-        var trendIcon = p.tendance === 'up' ? '⬆️' : p.tendance === 'down' ? '⬇️' : '➡️';
+        var tc = p.tendance==='up'?'trend-up':p.tendance==='down'?'trend-down':'trend-stable';
+        var ti = p.tendance==='up'?'⬆️':p.tendance==='down'?'⬇️':'➡️';
         return '<div class="product-item">' +
-          '<div class="product-info">' +
-            '<div class="product-name">' + p.produit_nom + '</div>' +
-            '<div class="product-meta">' + new Date(p.created_at).toLocaleDateString('fr-FR') + '</div>' +
-          '</div>' +
+          '<div class="product-info"><div class="product-name">' + p.produit_nom + '</div>' +
+          '<div class="product-meta">' + new Date(p.created_at).toLocaleDateString('fr-FR') + '</div></div>' +
           '<div class="product-price">' + Number(p.prix_par_unite).toLocaleString() + ' FCFA/' + p.unite + '</div>' +
-          '<span class="trend-badge ' + trendClass + '">' + trendIcon + '</span>' +
+          '<span class="trend-badge ' + tc + '">' + ti + '</span>' +
           '<div class="product-actions">' +
             '<button class="btn-edit" onclick="editPrix(' + p.id + ')">Éditer</button>' +
             '<button class="btn-delete" onclick="deletePrix(' + p.id + ')">✕</button>' +
-          '</div>' +
-        '</div>';
+          '</div></div>';
       }).join('');
-    } catch(e) { list.innerHTML = '<div class="empty">Erreur de chargement</div>'; }
+    } catch(e) { list.innerHTML = '<div class="empty">Erreur</div>'; }
   }
 
   async function loadCategories() {
@@ -381,25 +462,19 @@
     try {
       categories = await api('categories?select=*&order=nom');
       if (list) {
-        if (!categories.length) { list.innerHTML = '<div class="empty">Aucune catégorie</div>'; }
+        if (!Array.isArray(categories) || !categories.length) { list.innerHTML = '<div class="empty">Aucune catégorie</div>'; }
         else {
           list.innerHTML = categories.map(function(c) {
-            return '<div class="product-item">' +
-              '<div class="product-info"><div class="product-name">' + c.nom + '</div></div>' +
-              '<button class="btn-delete" onclick="deleteCategorie(' + c.id + ')">✕ Supprimer</button>' +
-            '</div>';
+            return '<div class="product-item"><div class="product-info"><div class="product-name">' + c.nom + '</div></div>' +
+              '<button class="btn-delete" onclick="deleteCategorie(' + c.id + ')">✕ Supprimer</button></div>';
           }).join('');
         }
       }
       var sel = document.getElementById('edit-categorie');
-      sel.innerHTML = '<option value="">— Choisir —</option>' + categories.map(function(c) {
-        return '<option value="' + c.id + '">' + c.nom + '</option>';
-      }).join('');
+      sel.innerHTML = '<option value="">— Choisir —</option>' + (Array.isArray(categories) ? categories.map(function(c) { return '<option value="' + c.id + '">' + c.nom + '</option>'; }).join('') : '');
       var prixSel = document.getElementById('prix-produit-nom');
-      if (prixSel && produits.length) {
-        prixSel.innerHTML = produits.map(function(p) {
-          return '<option value="' + p.nom + '">' + p.nom + '</option>';
-        }).join('');
+      if (prixSel && Array.isArray(produits) && produits.length) {
+        prixSel.innerHTML = produits.map(function(p) { return '<option value="' + p.nom + '">' + p.nom + '</option>'; }).join('');
       }
     } catch(e) {}
   }
@@ -409,22 +484,17 @@
     document.getElementById('edit-id').value = p ? p.id : '';
     document.getElementById('modal-title').textContent = p ? 'Modifier le produit' : 'Nouveau produit';
     document.getElementById('edit-nom').value = p ? p.nom : '';
-    document.getElementById('edit-desc').value = p ? (p.description || '') : '';
-    document.getElementById('edit-image').value = p ? (p.image_url || '') : '';
+    document.getElementById('edit-desc').value = p ? (p.description||'') : '';
+    document.getElementById('edit-image').value = p ? (p.image_url||'') : '';
     document.getElementById('edit-prix').value = p ? p.prix : '';
     document.getElementById('edit-unite').value = p ? p.unite : 'kg';
     document.getElementById('edit-stock').value = p ? p.stock : '';
-    document.getElementById('edit-categorie').value = p ? (p.categorie_id || '') : '';
+    document.getElementById('edit-categorie').value = p ? (p.categorie_id||'') : '';
     document.getElementById('edit-dispo').checked = p ? p.disponible : true;
     document.getElementById('modal-produit').classList.add('open');
   }
-
   function closeModal() { document.getElementById('modal-produit').classList.remove('open'); }
-
-  function editProduit(id) {
-    var p = produits.find(function(x) { return x.id === id; });
-    if (p) openModal(p);
-  }
+  function editProduit(id) { var p = produits.find(function(x){return x.id===id;}); if(p) openModal(p); }
 
   async function saveProduit() {
     var id = document.getElementById('edit-id').value;
@@ -434,33 +504,22 @@
       image_url: document.getElementById('edit-image').value || null,
       prix: parseFloat(document.getElementById('edit-prix').value),
       unite: document.getElementById('edit-unite').value,
-      stock: parseInt(document.getElementById('edit-stock').value) || 0,
+      stock: parseInt(document.getElementById('edit-stock').value)||0,
       categorie_id: document.getElementById('edit-categorie').value || null,
       disponible: document.getElementById('edit-dispo').checked,
       updated_at: new Date().toISOString()
     };
     try {
-      if (id) {
-        await api('produits?id=eq.' + id, 'PATCH', data);
-        showToast('Produit mis à jour ✓');
-      } else {
-        await api('produits', 'POST', data);
-        showToast('Produit ajouté ✓');
-      }
-      closeModal();
-      loadProduits();
-      loadAll();
-    } catch(e) {
-      showToast('Erreur lors de la sauvegarde');
-    }
+      if (id) { await api('produits?id=eq.'+id, 'PATCH', data); showToast('Produit mis à jour ✓'); }
+      else { await api('produits', 'POST', data); showToast('Produit ajouté ✓'); }
+      closeModal(); loadProduits(); loadAll();
+    } catch(e) { showToast('Erreur lors de la sauvegarde'); }
   }
 
   async function deleteProduit(id) {
     if (!confirm('Supprimer ce produit ?')) return;
-    await api('produits?id=eq.' + id, 'DELETE');
-    showToast('Produit supprimé');
-    loadProduits();
-    loadAll();
+    await api('produits?id=eq.'+id, 'DELETE');
+    showToast('Produit supprimé'); loadProduits(); loadAll();
   }
 
   function openPrixModal(p) {
@@ -468,91 +527,50 @@
     document.getElementById('prix-edit-id').value = p ? p.id : '';
     document.getElementById('prix-modal-title').textContent = p ? 'Modifier le prix' : 'Nouveau prix';
     var sel = document.getElementById('prix-produit-nom');
-    sel.innerHTML = produits.map(function(pr) {
-      return '<option value="' + pr.nom + '">' + pr.nom + '</option>';
-    }).join('');
-    if (p) {
-      sel.value = p.produit_nom;
-      document.getElementById('prix-valeur').value = p.prix_par_unite;
-      document.getElementById('prix-unite').value = p.unite;
-      document.getElementById('prix-tendance').value = p.tendance || 'stable';
-    } else {
-      document.getElementById('prix-valeur').value = '';
-      document.getElementById('prix-unite').value = 'kg';
-      document.getElementById('prix-tendance').value = 'stable';
-    }
+    sel.innerHTML = Array.isArray(produits) ? produits.map(function(pr){return '<option value="'+pr.nom+'">'+pr.nom+'</option>';}).join('') : '';
+    if (p) { sel.value=p.produit_nom; document.getElementById('prix-valeur').value=p.prix_par_unite; document.getElementById('prix-unite').value=p.unite; document.getElementById('prix-tendance').value=p.tendance||'stable'; }
+    else { document.getElementById('prix-valeur').value=''; document.getElementById('prix-unite').value='kg'; document.getElementById('prix-tendance').value='stable'; }
     document.getElementById('modal-prix').classList.add('open');
   }
-
   function closePrixModal() { document.getElementById('modal-prix').classList.remove('open'); }
-
-  function editPrix(id) {
-    var p = prixList.find(function(x) { return x.id === id; });
-    if (p) openPrixModal(p);
-  }
+  function editPrix(id) { var p = prixList.find(function(x){return x.id===id;}); if(p) openPrixModal(p); }
 
   async function savePrix() {
     var id = document.getElementById('prix-edit-id').value;
-    var data = {
-      produit_nom: document.getElementById('prix-produit-nom').value,
-      prix_par_unite: parseFloat(document.getElementById('prix-valeur').value),
-      unite: document.getElementById('prix-unite').value,
-      tendance: document.getElementById('prix-tendance').value,
-      date: new Date().toISOString().split('T')[0]
-    };
+    var data = { produit_nom: document.getElementById('prix-produit-nom').value, prix_par_unite: parseFloat(document.getElementById('prix-valeur').value), unite: document.getElementById('prix-unite').value, tendance: document.getElementById('prix-tendance').value, date: new Date().toISOString().split('T')[0] };
     try {
-      if (id) {
-        await api('prix?id=eq.' + id, 'PATCH', data);
-        showToast('Prix mis à jour ✓');
-      } else {
-        await api('prix', 'POST', data);
-        showToast('Prix ajouté ✓');
-      }
-      closePrixModal();
-      loadPrix();
-      loadAll();
-    } catch(e) {
-      showToast('Erreur lors de la sauvegarde');
-    }
+      if (id) { await api('prix?id=eq.'+id, 'PATCH', data); showToast('Prix mis à jour ✓'); }
+      else { await api('prix', 'POST', data); showToast('Prix ajouté ✓'); }
+      closePrixModal(); loadPrix(); loadAll();
+    } catch(e) { showToast('Erreur lors de la sauvegarde'); }
   }
 
   async function deletePrix(id) {
     if (!confirm('Supprimer ce prix ?')) return;
-    await api('prix?id=eq.' + id, 'DELETE');
-    showToast('Prix supprimé');
-    loadPrix();
-    loadAll();
+    await api('prix?id=eq.'+id, 'DELETE');
+    showToast('Prix supprimé'); loadPrix(); loadAll();
   }
 
-  function openCatModal() {
-    document.getElementById('modal-categorie').classList.add('open');
-    document.getElementById('cat-nom').value = '';
-  }
-
+  function openCatModal() { document.getElementById('modal-categorie').classList.add('open'); document.getElementById('cat-nom').value=''; }
   function closeCatModal() { document.getElementById('modal-categorie').classList.remove('open'); }
 
   async function saveCategorie() {
     var nom = document.getElementById('cat-nom').value.trim();
     if (!nom) return;
-    await api('categories', 'POST', { nom: nom });
-    showToast('Catégorie ajoutée ✓');
-    closeCatModal();
-    loadCategories();
-    loadAll();
+    await api('categories', 'POST', {nom:nom});
+    showToast('Catégorie ajoutée ✓'); closeCatModal(); loadCategories(); loadAll();
   }
 
   async function deleteCategorie(id) {
     if (!confirm('Supprimer cette catégorie ?')) return;
-    await api('categories?id=eq.' + id, 'DELETE');
-    showToast('Catégorie supprimée');
-    loadCategories();
+    await api('categories?id=eq.'+id, 'DELETE');
+    showToast('Catégorie supprimée'); loadCategories();
   }
 
   function showToast(msg) {
     var t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.display = 'block';
-    setTimeout(function() { t.style.display = 'none'; }, 3000);
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(function(){t.style.display='none';}, 3000);
   }
 
   if (sessionStorage.getItem('admin_ok')) loadAll();
