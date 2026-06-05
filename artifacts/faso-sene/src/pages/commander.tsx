@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 const SUPABASE_URL = "https://qemkisjyyltbvqdcurpg.supabase.co";
-const SUPABASE_KEY = "sb_publishable_6tB7OHqsUoIo0zkrgLU5wg_jFvW3jMr";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlbWtpc2p5eWx0YnZxZGN1cnBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MTM4NjcsImV4cCI6MjA5NjA4OTg2N30.gC9cXHEZyZNVgqk34Sd297HIG760vX7SiK6mFl_WJ88";
 const WHATSAPP_NUMBER = "22374947541";
 
 const headers = {
