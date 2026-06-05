@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const SUPABASE_URL = "https://qemkisjyyltbvqdcurpg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_6tB7OHqsUoIo0zkrgLU5wg_jFvW3jMr";
-const WHATSAPP_NUMBER = "22300000000";
+const WHATSAPP_NUMBER = "22374947541";
 
 async function fetchProduits() {
   const res = await fetch(
