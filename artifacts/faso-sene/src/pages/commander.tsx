@@ -218,4 +218,5 @@ export default function Commander() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Téléphone *</label>
-                  <Input placeholder="+223..."
+                  <Input placeholder="+223..." value={form.telephone} onChange={e => setForm({...form, telephone: e.target.value})} />
+
