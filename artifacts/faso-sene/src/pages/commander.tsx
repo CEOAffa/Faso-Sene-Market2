@@ -27,10 +27,10 @@ const PAYMENT_METHODS = [
 ];
 
 const TIME_SLOTS = [
-  { value: "matin", label: "Matin", sub: "8h–12h" },
-  { value: "apres-midi", label: "Après-midi", sub: "12h–17h" },
-  { value: "soir", label: "Soir", sub: "17h–20h" },
-  { value: "flexible", label: "Flexible", sub: "À définir" },
+  { value: "matin", label: "Matin", sub: "8h-12h" },
+  { value: "apres-midi", label: "Apres-midi", sub: "12h-17h" },
+  { value: "soir", label: "Soir", sub: "17h-20h" },
+  { value: "flexible", label: "Flexible", sub: "A definir" },
 ];
 
 export default function Commander() {
@@ -42,15 +42,19 @@ export default function Commander() {
   const [heureSlot, setHeureSlot] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    nom: "", telephone: "", email: "",
-    adresse: "", date: "", notes: "", whatsapp: false
-  });
+  const [nom, setNom] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [email, setEmail] = useState("");
+  const [adresse, setAdresse] = useState("");
+  const [date, setDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [whatsapp, setWhatsapp] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetch(`${SUPABASE_URL}/rest/v1/produits?select=*&disponible=eq.true`, { headers })
-      .then(r => r.json()).then(data => { if (Array.isArray(data)) setProduits(data); });
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setProduits(data); });
   }, []);
 
   const total = cart.reduce((s: number, i: any) => s + i.subtotal, 0);
@@ -66,7 +70,8 @@ export default function Commander() {
     } else {
       setCart([...cart, { id: p.id, nom: p.nom, qty, prix: p.prix, unite: p.unite, subtotal: qty * p.prix }]);
     }
-    setSelectedProduit(""); setQuantite("1");
+    setSelectedProduit("");
+    setQuantite("1");
   }
 
   function removeFromCart(id: number) {
@@ -74,8 +79,8 @@ export default function Commander() {
   }
 
   async function submit() {
-    if (!form.nom || !form.telephone || !form.adresse) {
-      toast({ title: "Champs requis", description: "Nom, téléphone et adresse sont obligatoires.", variant: "destructive" });
+    if (!nom || !telephone || !adresse) {
+      toast({ title: "Champs requis", description: "Nom, telephone et adresse sont obligatoires.", variant: "destructive" });
       return;
     }
     if (cart.length === 0) {
@@ -85,31 +90,32 @@ export default function Commander() {
     setLoading(true);
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
-        method: "POST", headers,
+        method: "POST",
+        headers,
         body: JSON.stringify({
-          client_nom: form.nom,
-          client_telephone: form.telephone,
-          client_email: form.email || null,
-          adresse_livraison: form.adresse,
-          date_livraison: form.date || null,
+          client_nom: nom,
+          client_telephone: telephone,
+          client_email: email || null,
+          adresse_livraison: adresse,
+          date_livraison: date || null,
           heure_livraison: heureSlot || null,
           methode_paiement: paymentMethod,
-          notes: form.notes || null,
+          notes: notes || null,
           total,
           produits: cart,
           statut: "en_attente"
         })
       });
 
-      if (form.whatsapp) {
+      if (whatsapp) {
         const lignes = cart.map((i: any) => `- ${i.nom}: ${i.qty} ${i.unite} x ${i.prix.toLocaleString("fr-FR")} FCFA = ${i.subtotal.toLocaleString("fr-FR")} FCFA`).join("\n");
-        const msg = encodeURIComponent(`Bonjour Faso Sènè,\n\nNouvelle commande:\n\n${lignes}\n\nTotal: ${total.toLocaleString("fr-FR")} FCFA\nPaiement: ${paymentMethod}\nLivraison: ${form.adresse}\nNom: ${form.nom}\nTél: ${form.telephone}${form.notes ? `\nNotes: ${form.notes}` : ""}`);
+        const msg = encodeURIComponent(`Bonjour Faso Sene,\n\nNouvelle commande:\n\n${lignes}\n\nTotal: ${total.toLocaleString("fr-FR")} FCFA\nPaiement: ${paymentMethod}\nLivraison: ${adresse}\nNom: ${nom}\nTel: ${telephone}${notes ? `\nNotes: ${notes}` : ""}`);
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
       }
 
       setIsSuccess(true);
       setCart([]);
-      setForm({ nom: "", telephone: "", email: "", adresse: "", date: "", notes: "", whatsapp: false });
+      setNom(""); setTelephone(""); setEmail(""); setAdresse(""); setDate(""); setNotes(""); setWhatsapp(false);
     } catch(e) {
       toast({ title: "Erreur", description: "Une erreur s'est produite.", variant: "destructive" });
     }
@@ -122,7 +128,7 @@ export default function Commander() {
         <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
           <Check className="h-10 w-10 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold mb-3">Commande envoyée !</h2>
+        <h2 className="text-2xl font-bold mb-3">Commande envoyee !</h2>
         <p className="text-muted-foreground mb-6">Nous vous contacterons sous peu pour confirmer la livraison.</p>
         <Button onClick={() => setIsSuccess(false)}>Nouvelle commande</Button>
       </motion.div>
@@ -134,7 +140,7 @@ export default function Commander() {
       <section className="bg-primary/5 border-b py-10">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl md:text-4xl font-bold mb-2">Passer une Commande</h1>
-          <p className="text-muted-foreground">Sélectionnez vos produits et choisissez votre mode de paiement.</p>
+          <p className="text-muted-foreground">Selectionnez vos produits et choisissez votre mode de paiement.</p>
         </div>
       </section>
 
@@ -142,7 +148,12 @@ export default function Commander() {
         <div className="max-w-2xl mx-auto space-y-5">
 
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><ShoppingCart className="h-5 w-5 text-primary" />Produits</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                Produits
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-2">
                 <Select value={selectedProduit} onValueChange={setSelectedProduit}>
@@ -152,13 +163,15 @@ export default function Commander() {
                   <SelectContent>
                     {produits.map((p: any) => (
                       <SelectItem key={p.id} value={String(p.id)}>
-                        {p.nom} — {Number(p.prix).toLocaleString("fr-FR")} FCFA/{p.unite}
+                        {p.nom} - {Number(p.prix).toLocaleString("fr-FR")} FCFA/{p.unite}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Input type="number" min="1" value={quantite} onChange={e => setQuantite(e.target.value)} className="w-20" />
-                <Button onClick={addToCart} disabled={!selectedProduit}><Plus className="h-4 w-4" /></Button>
+                <Button onClick={addToCart} disabled={!selectedProduit}>
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
 
               <AnimatePresence>
@@ -169,7 +182,7 @@ export default function Commander() {
                       <div key={item.id} className="flex items-center justify-between py-2">
                         <div>
                           <p className="font-medium text-sm">{item.nom}</p>
-                          <p className="text-xs text-muted-foreground">{item.qty} {item.unite} × {Number(item.prix).toLocaleString("fr-FR")} FCFA</p>
+                          <p className="text-xs text-muted-foreground">{item.qty} {item.unite} x {Number(item.prix).toLocaleString("fr-FR")} FCFA</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-primary text-sm">{Number(item.subtotal).toLocaleString("fr-FR")} F</span>
@@ -214,9 +227,85 @@ export default function Commander() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Nom complet *</label>
-                  <Input placeholder="Votre nom" value={form.nom} onChange={e => setForm({...form, nom: e.target.value})} />
+                  <Input placeholder="Votre nom" value={nom} onChange={e => setNom(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Téléphone *</label>
-                  <Input placeholder="+223..." value={form.telephone} onChange={e => setForm({...form, telephone: e.target.value})} />
+                  <label className="text-sm font-medium mb-1 block">Telephone *</label>
+                  <Input placeholder="+223..." value={telephone} onChange={e => setTelephone(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Email (optionnel)</label>
+                <Input placeholder="email@exemple.com" value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Adresse de livraison *</label>
+                <Input placeholder="Quartier, rue, ville" value={adresse} onChange={e => setAdresse(e.target.value)} />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Date souhaitee</label>
+                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Creneau horaire</label>
+                  <div className="grid grid-cols-2 gap-1">
+                    {TIME_SLOTS.map(s => (
+                      <button key={s.value} onClick={() => setHeureSlot(heureSlot === s.value ? "" : s.value)}
+                        className={`py-2 px-1 rounded-lg border text-center text-xs transition-all ${heureSlot === s.value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"}`}>
+                        <div className="font-semibold">{s.label}</div>
+                        <div className="opacity-70">{s.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Notes (optionnel)</label>
+                <Textarea placeholder="Instructions speciales..." value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
 
+              <div className="flex items-center justify-between rounded-xl border p-4">
+                <div>
+                  <p className="font-medium flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-green-500" />
+                    Commander via WhatsApp
+                  </p>
+                  <p className="text-xs text-muted-foreground">Ouvre WhatsApp avec votre commande</p>
+                </div>
+                <button onClick={() => setWhatsapp(!whatsapp)}
+                  className={`w-11 h-6 rounded-full transition-colors ${whatsapp ? "bg-primary" : "bg-muted"}`}>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${whatsapp ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+
+              {cart.length > 0 && (
+                <div className="rounded-xl bg-primary/5 border border-primary/10 p-4">
+                  <p className="text-sm font-semibold text-primary mb-2">Recapitulatif</p>
+                  {cart.map((i: any) => (
+                    <div key={i.id} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{i.nom} x{i.qty}</span>
+                      <span>{Number(i.subtotal).toLocaleString("fr-FR")} F</span>
+                    </div>
+                  ))}
+                  <Separator className="my-2" />
+                  <div className="flex justify-between font-bold">
+                    <span>Total</span>
+                    <span className="text-primary">{total.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                  <Badge variant="outline" className="mt-2 text-xs">
+                    {PAYMENT_METHODS.find(m => m.id === paymentMethod)?.label}
+                  </Badge>
+                </div>
+              )}
+
+              <Button onClick={submit} disabled={loading || cart.length === 0} className="w-full h-12 text-base">
+                {loading ? "Envoi..." : `Confirmer la commande${total > 0 ? ` - ${total.toLocaleString("fr-FR")} FCFA` : ""}`}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    </div>
+  );
+}
